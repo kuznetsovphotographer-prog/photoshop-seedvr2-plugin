@@ -14,11 +14,11 @@
 
 ## Скачать
 
-- [Комплект установки для Windows ZIP](ccx/SeedVR2-Upscaler-v0.1.1-Windows.zip)
-- [Готовый CCX-пакет v0.1.1](ccx/com.local.photoshop.seedvr2-upscaler_PS.ccx)
-- [BAT-установщик для Windows](ccx/INSTALL_SEEDVR2_UPSCALER.bat)
-- [BAT-файл удаления](ccx/UNINSTALL_SEEDVR2_UPSCALER.bat)
-- [API workflow для ComfyUI](workflows/workflows-for-comfyui/seedvr2_simple_image_upscale_api.json)
+- [Скачать комплект установки для Windows ZIP](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/raw/main/ccx/SeedVR2-Upscaler-v0.1.1-Windows.zip)
+- [Скачать готовый CCX-пакет v0.1.1](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/raw/main/ccx/com.local.photoshop.seedvr2-upscaler_PS.ccx)
+- [Скачать BAT-установщик для Windows](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/raw/main/ccx/INSTALL_SEEDVR2_UPSCALER.bat)
+- [Скачать BAT-файл удаления](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/raw/main/ccx/UNINSTALL_SEEDVR2_UPSCALER.bat)
+- [Скачать API workflow для ComfyUI](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/raw/main/workflows/workflows-for-comfyui/seedvr2_simple_image_upscale_api.json)
 
 Полная инструкция: [docs/INSTALLATION_RU.md](docs/INSTALLATION_RU.md).
 
