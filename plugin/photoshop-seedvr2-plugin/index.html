@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SeedVR2 Upscaler</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="ps-window-frame">
+      <header class="panel-titlebar">
+        <div class="panel-titlegroup">
+          <span class="panel-mark" aria-hidden="true"></span>
+          <span class="panel-title">SEEDVR2</span>
+        </div>
+        <span class="panel-close" aria-hidden="true">&times;</span>
+      </header>
+
+      <div class="panel-content">
+        <section class="intro-row">
+          <div class="intro-copy">
+            <h1>SeedVR2 Upscaler</h1>
+            <p id="engineSubtitle">Super-resolution AI Engine</p>
+          </div>
+
+          <div class="action-button-wrap">
+            <div class="action-surface">
+              <button id="upscaleBtn" class="action-hitbox" type="button" aria-label="Upscale"></button>
+              <span class="button-visual">
+                <svg id="upscaleIcon" class="upscale-icon" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M3.3 9.5v2.2c0 .55.45 1 1 1h7.4c.55 0 1-.45 1-1V9.5"></path>
+                  <path d="M8.2 8.1 12.5 3.8"></path>
+                  <path d="M9.2 3.8h3.3v3.3"></path>
+                  <path d="M5.1 3.2v2.1"></path>
+                  <path d="M4.05 4.25h2.1"></path>
+                </svg>
+                <svg id="busyIcon" class="busy-icon" viewBox="0 0 24 24" aria-hidden="true" hidden>
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M12 3a9 9 0 0 1 9 9"></path>
+                </svg>
+                <span id="upscaleLabel">Upscale</span>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section class="mode-section">
+          <div id="scaleModeToggle" class="mode-heading" role="radio" aria-checked="true" tabindex="0">
+            <div class="mode-labelgroup">
+              <span class="radio-dot is-active" aria-hidden="true"></span>
+              <span class="mode-label">Scale Multiplier</span>
+            </div>
+            <span class="mode-kind">BY FACTOR</span>
+          </div>
+
+          <div id="scaleButtons" class="scale-grid">
+            <button class="scale-button is-active" type="button" data-factor="2">2x</button>
+            <button class="scale-button" type="button" data-factor="3">3x</button>
+            <button class="scale-button" type="button" data-factor="4">4x</button>
+          </div>
+        </section>
+
+        <section class="mode-section">
+          <div id="pixelsModeToggle" class="mode-heading" role="radio" aria-checked="false" tabindex="0">
+            <div class="mode-labelgroup">
+              <span class="radio-dot" aria-hidden="true"></span>
+              <span class="mode-label">Shortest Side Limit</span>
+            </div>
+            <span class="mode-kind">EXACT PIXELS</span>
+          </div>
+
+          <div id="pixelsContainer" class="pixels-row is-disabled">
+            <span class="pixels-label">Target Size:</span>
+            <div class="pixels-editor">
+              <span class="pixels-input-wrap">
+                <textarea id="shortestSideInput" class="pixels-textarea-input" rows="1" inputmode="numeric" maxlength="4" aria-label="Shortest side pixels" spellcheck="false">2000</textarea>
+              </span>
+              <span class="pixels-unit">px</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="output-section">
+          <div class="output-card">
+            <div class="output-copy">
+              <span class="output-title">New Window</span>
+              <span class="output-subtitle">Open output in a separate document</span>
+            </div>
+            <div id="newWindowToggle" class="new-window-toggle" role="switch" aria-checked="false" aria-label="New Window Off" tabindex="0">
+              <span id="newWindowState" class="new-window-state">OFF</span>
+              <span class="switch-track" aria-hidden="true">
+                <span class="switch-thumb"></span>
+              </span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="loaderProgress" class="loader-progress" aria-hidden="true"></div>
+    </main>
+
+    <script src="src/logger.js"></script>
+    <script src="src/settings.js"></script>
+    <script src="src/imageSizing.js"></script>
+    <script src="src/workflowMapper.js"></script>
+    <script src="src/comfyClient.js"></script>
+    <script src="src/photoshop.js"></script>
+    <script src="src/main.js"></script>
+  </body>
+</html>

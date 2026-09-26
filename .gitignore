@@ -1,0 +1,11 @@
+Thumbs.db
+.DS_Store
+Desktop.ini
+*.log
+*.tmp
+node_modules/
+tmp/
+_publication_analysis/
+_ccx_check/
+.uxp/
+
