@@ -1,65 +1,64 @@
-# Разработка и сборка CCX
+# Разработка И Сборка CCX 0.2.0
 
-## Загрузка исходников
+## Источник Публикации
 
-В Adobe UXP Developer Tool выберите:
+Runtime-файлы версии 0.2.0 извлечены из финального CCX автора. Код, manifest, стили и workflow при публикации не менялись. В публикационной копии CCX удалены внутреннее ремонтное задание и PROJECT_STATE; README, инструкция и ручной чек-лист заменены публичными версиями. Остальные записи архива сохранены. Исходный CCX автора не изменён.
+
+## Загрузка
+
+В Adobe UXP Developer Tool выгрузите старый экземпляр через Unload, затем Add Plugin и выберите:
 
 ```text
 plugin/photoshop-seedvr2-plugin/manifest.json
 ```
 
-После изменений используйте `Reload` или `Unload -> Load`. Точное выравнивание элементов проверяйте в реальной панели Photoshop: браузерное превью UXP не повторяет полностью.
+Нажмите Load. После изменений используйте Unload → Load. Геометрию и поля ввода проверяйте в Photoshop: браузерный preview не повторяет UXP полностью.
 
-## Проверка кода
+## Модули
 
-Откройте PowerShell в:
+| Файл в src/ | Задача |
+| --- | --- |
+| main.js | UI, Actions, запуск, маршрутизация результата и recovery |
+| settings.js | Настройки .v2, включая tiledEnabled и tileCount |
+| tileLayout.js | Сетка, перекрытия, расчёт целевого размера и лимитов |
+| tiledUpscale.js | Строго последовательный цикл запросов, отмена и прогресс |
+| tileBlending.js | Плавные нормализованные веса и alpha-aware смешивание |
+| photoshop.js | Экспорт, native crop/resize, Imaging API, возврат и undo |
+| comfyClient.js | Upload, очередь, WebSocket, polling и download |
+| workflowMapper.js | Подстановка изображения, цели, seed и проверенных настроек |
 
-```text
-plugin/photoshop-seedvr2-plugin
-```
+Сеть ожидается вне executeAsModal; изменения Photoshop выполняются модально. Original-document guard нельзя отключать ради обхода ошибки вставки.
 
-Выполните:
+## Автоматические Проверки
+
+Откройте PowerShell в `plugin/photoshop-seedvr2-plugin`:
 
 ```powershell
-node --check .\src\main.js
-node --check .\src\photoshop.js
-node --check .\src\settings.js
-node --check .\src\workflowMapper.js
+Get-ChildItem .\src\*.js | ForEach-Object { node --check $_.FullName }
 node .\tests\run-tests.js
 node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8')); console.log('manifest ok')"
 ```
 
-## Сборка CCX
+В проверке публикации прошли исходные assertions и **25 Node-тестов**: геометрия, лимиты, стыки/alpha, последовательность, Stop, ошибки, настройки/Actions, четыре маршрута вывода, guard и recovery. Тесты Imaging API используют модель Photoshop, а не реальное приложение.
 
-1. Проверьте оба режима вывода, выделение, Undo, Stop и Actions в Photoshop.
-2. Увеличьте `version` в `manifest.json`.
-3. В UXP Developer Tool выберите плагин и команду Package.
-4. Укажите отдельную пустую папку для результата.
-5. Переименовывать plugin ID нельзя: обновления должны сохранять `com.local.photoshop.seedvr2-upscaler`.
-6. Положите новый CCX в `ccx/` под именем:
+## Ручная Проверка
 
-```text
-com.local.photoshop.seedvr2-upscaler_PS.ccx
-```
+Сценарии: [MANUAL_TEST_RU.md](../plugin/photoshop-seedvr2-plugin/MANUAL_TEST_RU.md). Проверьте установленный CCX в Photoshop: все сетки, размеры, New Window, выделение, Undo, Stop, Actions, прогресс и прокрутку.
 
-7. Запустите BAT-установщик и проведите smoke-test установленной сборки, а не только Load-версии.
+Записи автора показывают рабочую панель и один результат 2x/4 части. Они не заменяют полный прогон совместимости на всех версиях Photoshop и видеокартах. Во время публикации Photoshop автоматически не запускался.
 
-## Что не включать в публикацию
+## Сборка
 
-- временные логи;
-- папку `tmp`;
-- переписку с моделями и ремонтные спецификации;
-- локальные абсолютные пути;
-- модели SeedVR2;
-- тестовые исходные фотографии без права на публикацию.
+1. Пройдите ручную проверку.
+2. Укажите новый номер версии в manifest при изменении кода.
+3. В UXP Developer Tool выберите Package.
+4. Укажите отдельную пустую папку вывода.
+5. Сохраните ID `com.local.photoshop.seedvr2-upscaler`.
+6. Положите CCX и проверенные BAT-файлы рядом, обновите инструкцию, ZIP и контрольные суммы.
+7. Проверьте установку именно собранного CCX вручную.
 
-## Проверка релиза
+В релизе нужны CCX и Windows ZIP; исходники GitHub архивирует автоматически. Старый релиз оставляйте для отката. После очистки только документации автоматически проверяется совпадение каждого runtime-файла с оригинальным CCX; установка очищенного пакета в Photoshop требует отдельного ручного smoke-test.
 
-- CCX содержит ту же версию, что исходный manifest;
-- CCX включает запись Photoshop Actions;
-- BAT устанавливает и удаляет плагин;
-- workflow выполняется вручную;
-- README-ссылки открываются;
-- GIF и изображения отображаются на GitHub;
-- размер репозитория остается разумным.
+## Что Не Публиковать
 
+Модели, токены, логи, temp, личные пути, ремонтные спецификации и фотографии без разрешения автора. Не меняйте лицензию проекта без решения владельца.

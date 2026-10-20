@@ -1,10 +1,11 @@
 @echo off
 setlocal
 
+set "SEEDVR2_BAT=%~f0"
 fltmc >nul 2>&1
 if errorlevel 1 (
   echo Requesting administrator permission...
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -Verb RunAs -WorkingDirectory 'C:\'"
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath $env:SEEDVR2_BAT -Verb RunAs -WorkingDirectory 'C:\'"
   exit /b
 )
 
@@ -21,30 +22,40 @@ if not exist "%UPIA%" (
 
 if not exist "%CCX%" (
   echo Plugin package was not found next to this installer:
-  echo %CCX%
+  echo "%CCX%"
   echo.
   pause
   exit /b 1
 )
 
-echo Installing SeedVR2 Upscaler...
+echo SeedVR2 Upscaler 0.2.0
+echo Close Photoshop and unload any development copy in UXP Developer Tool first.
+echo This installs or updates the installed SeedVR2 Upscaler plugin.
 echo.
+pause
 
 pushd C:\
+if errorlevel 1 exit /b 1
 "%UPIA%" /install "%CCX%"
+set "INSTALL_RESULT=%ERRORLEVEL%"
 echo.
 "%UPIA%" /list all | findstr /i /c:"SeedVR2 Upscaler" >nul
 set "PLUGIN_FOUND=%ERRORLEVEL%"
 popd
 
-if "%PLUGIN_FOUND%"=="0" (
-  echo SeedVR2 Upscaler is installed.
-  echo Restart Photoshop, then open Plugins ^> SeedVR2 Upscaler ^> SeedVR2 Upscaler.
-) else (
-  echo Adobe did not confirm the installation.
-  echo Check: C:\ProgramData\Adobe\UPI\Log\Upia.log
-)
+if not "%INSTALL_RESULT%"=="0" goto install_failed
+if not "%PLUGIN_FOUND%"=="0" goto install_failed
 
+echo SeedVR2 Upscaler 0.2.0 package installed successfully.
+echo Restart Photoshop, then open Plugins ^> SeedVR2 Upscaler ^> SeedVR2 Upscaler.
 echo.
 pause
-exit /b %PLUGIN_FOUND%
+exit /b 0
+
+:install_failed
+echo Adobe did not confirm the installation. Installer exit code: %INSTALL_RESULT%
+echo Check: C:\ProgramData\Adobe\UPI\Log\Upia.log
+echo Check: C:\ProgramData\Adobe\UPI\Log\EMCL.log
+echo.
+pause
+exit /b 1

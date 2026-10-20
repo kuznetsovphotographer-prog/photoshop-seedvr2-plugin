@@ -9,6 +9,12 @@
   let activeMode = "scale";
   let selectedFactor = 2;
   let newWindow = false;
+  let tiledEnabled = false;
+  let tileCount = 4;
+  let previewSource = null;
+  let previewPending = false;
+  let lastProgress = 0;
+  let recoveryFile = null;
 
   function readShortestSideText() {
     return $("shortestSideInput").value;
@@ -34,7 +40,9 @@
       activeMode,
       factor: selectedFactor,
       shortestSide: getShortestSideInput(),
-      newWindow
+      newWindow,
+      tiledEnabled,
+      tileCount
     };
   }
 
@@ -49,6 +57,8 @@
       factor: normalized.factor,
       shortestSide: normalized.shortestSide,
       newWindow: normalized.newWindow,
+      tiledEnabled: normalized.tiledEnabled,
+      tileCount: normalized.tileCount,
       seed: "random"
     };
   }
@@ -78,7 +88,7 @@
 
   function refreshScaleButtons() {
     const scaleActive = activeMode === "scale";
-    document.querySelectorAll(".scale-button").forEach((button) => {
+    document.querySelectorAll(".scale-button[data-factor]").forEach((button) => {
       button.classList.toggle(
         "is-active",
         scaleActive && Number(button.dataset.factor) === selectedFactor
@@ -97,12 +107,14 @@
     $("pixelsContainer").classList.toggle("is-disabled", scaleActive);
     setShortestSideDisabled(scaleActive || isWorking);
     refreshScaleButtons();
+    renderTilePreview();
     maybeSave(options);
   }
 
   function setFactor(factor, options) {
     selectedFactor = globalThis.SeedVR2ImageSizing.normalizeFactor(factor);
     refreshScaleButtons();
+    renderTilePreview();
     maybeSave(options);
   }
 
@@ -118,6 +130,67 @@
     maybeSave(options);
   }
 
+  function tileOptions(source, settings) {
+    return {
+      width: source.width, height: source.height,
+      mode: settings.activeMode, factor: settings.factor,
+      shortestSide: settings.shortestSide, tileCount: settings.tileCount
+    };
+  }
+
+  function renderTilePreview() {
+    const preview = $("tilePreview");
+    preview.classList.remove("is-error");
+    if (!tiledEnabled) {
+      preview.textContent = "Process and blend image parts";
+      return;
+    }
+    if (!previewSource) {
+      preview.textContent = "Open an image to calculate the output size";
+      return;
+    }
+    try {
+      const layout = globalThis.SeedVR2TileLayout.computeLayout(tileOptions(previewSource, getUiSettings()));
+      preview.textContent = `${layout.count} parts | ${layout.targetWidth} x ${layout.targetHeight} px` +
+        (layout.capped ? " | 2500 px limit per part" : "") +
+        (previewSource.mode === "selection" ? " | selection" : "");
+    } catch (error) {
+      preview.textContent = error.message || String(error);
+      preview.classList.add("is-error");
+    }
+  }
+
+  async function refreshSourcePreview() {
+    if (isWorking || previewPending) { return; }
+    previewPending = true;
+    try {
+      previewSource = await globalThis.SeedVR2Photoshop.inspectSource();
+    } catch (error) {
+      previewSource = null;
+    } finally {
+      previewPending = false;
+      if (!isWorking) { renderTilePreview(); }
+    }
+  }
+
+  function setTiled(enabled, count, options) {
+    tiledEnabled = enabled === true;
+    tileCount = globalThis.SeedVR2TileLayout.normalizeTileCount(count);
+    const toggle = $("tiledToggle");
+    toggle.classList.toggle("is-on", tiledEnabled);
+    toggle.setAttribute("aria-checked", String(tiledEnabled));
+    toggle.setAttribute("aria-label", `Tiled Upscale ${tiledEnabled ? "On" : "Off"}`);
+    $("tiledState").textContent = tiledEnabled ? "ON" : "OFF";
+    $("tileButtons").classList.toggle("is-disabled", !tiledEnabled);
+    document.querySelectorAll(".tile-button").forEach((button) => {
+      const selected = tiledEnabled && Number(button.dataset.parts) === tileCount;
+      button.classList.toggle("is-active", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    renderTilePreview();
+    maybeSave(options);
+  }
+
   function setControlsBusy(busy) {
     $("scaleModeToggle").classList.toggle("is-disabled", busy);
     $("pixelsModeToggle").classList.toggle("is-disabled", busy);
@@ -126,7 +199,12 @@
     });
     $("newWindowToggle").classList.toggle("is-disabled", busy);
     $("newWindowToggle").tabIndex = busy ? -1 : 0;
+    $("newWindowToggle").setAttribute("aria-disabled", String(busy));
+    $("tiledToggle").classList.toggle("is-disabled", busy);
+    $("tiledToggle").tabIndex = busy ? -1 : 0;
+    $("tiledToggle").setAttribute("aria-disabled", String(busy));
     setShortestSideDisabled(busy || activeMode !== "pixels");
+    $("openLastResultBtn").disabled = busy;
   }
 
   function setProgress(value) {
@@ -136,7 +214,8 @@
       loader.classList.add("is-active", "is-indeterminate");
       return;
     }
-    const percent = Math.max(0, Math.min(100, Math.round(value)));
+    const percent = Math.max(lastProgress, Math.min(100, Math.round(value)));
+    lastProgress = percent;
     loader.classList.add("is-active");
     loader.classList.remove("is-indeterminate");
     loader.style.width = `${percent}%`;
@@ -169,9 +248,14 @@
     setControlsBusy(busy);
     updateBusyLabel();
     if (busy) {
+      lastProgress = 0;
+      $("progressStatus").hidden = false;
+      $("progressStatus").textContent = "Preparing...";
       setProgress(Number.NaN);
     } else {
       clearProgress();
+      $("progressStatus").hidden = true;
+      refreshSourcePreview();
     }
   }
 
@@ -183,16 +267,18 @@
     $("upscaleBtn").parentElement.classList.add("is-stopping");
     updateBusyLabel();
     logger.warn("Stop requested. Interrupting ComfyUI generation.");
+    const promptId = currentPromptId;
+    const client = currentClient;
     try {
-      if (currentClient && currentPromptId) {
-        await currentClient.deletePrompt(currentPromptId);
+      if (client && promptId) {
+        await client.deletePrompt(promptId);
       }
     } catch (error) {
       logger.warn(`Could not remove queued prompt: ${error.message || String(error)}`);
     }
     try {
-      if (currentClient) {
-        await currentClient.interrupt();
+      if (client && promptId) {
+        await client.interrupt();
       }
     } catch (error) {
       logger.warn(`Could not interrupt ComfyUI: ${error.message || String(error)}`);
@@ -236,23 +322,25 @@
     let downloaded = null;
     let source = null;
     let openedResultDocument = false;
+    let deliveryStarted = false;
+    let retainedForRecovery = false;
     setBusy(true);
 
     try {
       source = await globalThis.SeedVR2Photoshop.inspectSource(logger);
+      const layout = settings.tiledEnabled
+        ? globalThis.SeedVR2TileLayout.computeLayout(tileOptions(source, settings)) : null;
+      if (layout) { globalThis.SeedVR2Photoshop.assertTilingSupported(); }
       if (options.recordAction) {
         await recordUpscaleAction(settings);
       }
 
-      const sizing = globalThis.SeedVR2ImageSizing.computeTargetResolution({
-        width: source.width,
-        height: source.height,
-        mode: settings.activeMode,
-        factor: settings.factor,
-        shortestSide: settings.shortestSide
+      const sizing = layout || globalThis.SeedVR2ImageSizing.computeTargetResolution({
+        width: source.width, height: source.height, mode: settings.activeMode,
+        factor: settings.factor, shortestSide: settings.shortestSide
       });
       logger.info(
-        `Source mode: ${source.mode}. Target shortest side: ${sizing.resolution}px` +
+        `Source mode: ${source.mode}. Target shortest side${layout ? " per part" : ""}: ${sizing.resolution}px` +
         `${sizing.capped ? " (capped at 2500px)." : "."}`
       );
 
@@ -265,63 +353,86 @@
 
       exportedFile = await globalThis.SeedVR2Photoshop.exportVisibleMergedPng(source, logger);
       throwIfCancelled(token);
-      logger.info("stage: upload:start");
-      const upload = await client.uploadImage(exportedFile, source.mode);
-      throwIfCancelled(token);
-      logger.info(`Uploaded Photoshop pixels to ComfyUI input: ${upload.imageName}.`);
+      if (layout) {
+        downloaded = await globalThis.SeedVR2TiledUpscale.run({
+          client, source, sourceFile: exportedFile, layout, logger, cancelToken: token,
+          onPromptQueued(promptId) { currentPromptId = promptId; },
+          onProgress(value, stage) {
+            setProgress(value);
+            $("progressStatus").textContent = stage;
+          }
+        });
+      } else {
+        logger.info("stage: upload:start");
+        const upload = await client.uploadImage(exportedFile, source.mode);
+        throwIfCancelled(token);
+        logger.info(`Uploaded Photoshop pixels to ComfyUI input: ${upload.imageName}.`);
 
-      const patched = await globalThis.SeedVR2WorkflowMapper.patchWorkflow({
-        imageName: upload.imageName,
-        resolution: sizing.resolution,
-        seed: "random"
-      });
-      logger.info(`Queued SeedVR2 with seed ${patched.seed}.`);
-
-      logger.info("stage: queue:start");
-      const result = await client.runPrompt(patched.prompt, patched.outputNodeId, (progress) => {
-        if (progress && progress.max) {
-          setProgress((progress.value / progress.max) * 100);
-        }
-      }, {
-        cancelToken: token,
-        onPromptQueued(promptId) {
-          currentPromptId = promptId;
-        }
-      });
+        const patched = await globalThis.SeedVR2WorkflowMapper.patchWorkflow({
+          imageName: upload.imageName, resolution: sizing.resolution, seed: "random"
+        });
+        logger.info(`Queued SeedVR2 with seed ${patched.seed}.`);
+        logger.info("stage: queue:start");
+        const result = await client.runPrompt(patched.prompt, patched.outputNodeId, (progress) => {
+          if (progress && progress.max) {
+            setProgress(5 + (progress.value / progress.max) * 90);
+          }
+        }, {
+          cancelToken: token,
+          onPromptQueued(promptId) { currentPromptId = promptId; }
+        });
+        currentPromptId = "";
+        throwIfCancelled(token);
+        downloaded = await client.downloadImage(result.image);
+        throwIfCancelled(token);
+        logger.info("stage: download:done");
+        logger.info(`Downloaded SeedVR2 result: ${downloaded.file.name}.`);
+      }
       throwIfCancelled(token);
-
-      downloaded = await client.downloadImage(result.image);
-      throwIfCancelled(token);
-      logger.info("stage: download:done");
-      logger.info(`Downloaded SeedVR2 result: ${downloaded.file.name}.`);
+      $("progressStatus").textContent = "Applying...";
+      setProgress(98);
+      deliveryStarted = true;
 
       if (settings.newWindow) {
         logger.info("Output mode: new document.");
-        await globalThis.SeedVR2Photoshop.openResultDocument(downloaded.file, logger);
+        await globalThis.SeedVR2Photoshop.openResultDocument(downloaded.file, logger, token);
         openedResultDocument = true;
       } else if (source.mode === "selection") {
         logger.info("Output mode: current document selection layer.");
-        await globalThis.SeedVR2Photoshop.placeSelectionResultIntoSource(downloaded.file, source, logger);
+        await globalThis.SeedVR2Photoshop.placeSelectionResultIntoSource(downloaded.file, source, logger, token);
       } else {
         logger.info("Output mode: current document.");
-        await globalThis.SeedVR2Photoshop.replaceDocumentWithResult(downloaded.file, source, logger);
+        await globalThis.SeedVR2Photoshop.replaceDocumentWithResult(downloaded.file, source, logger, token);
       }
       logger.info("SeedVR2 upscale completed.");
+      setProgress(100);
     } catch (error) {
       if (error && error.kind === "cancelled") {
         logger.warn("SeedVR2 upscale stopped by user.");
+        if (isActionPlayback) { throw error; }
       } else {
         logger.error(globalThis.SeedVR2Logger.formatError(error));
+        let recoveryNote = "";
+        if (deliveryStarted && downloaded && downloaded.file) {
+          if (recoveryFile && recoveryFile !== downloaded.file) {
+            await globalThis.SeedVR2Photoshop.deleteEntryQuietly(recoveryFile);
+          }
+          recoveryFile = downloaded.file;
+          retainedForRecovery = true;
+          $("openLastResultBtn").hidden = false;
+          recoveryNote = "\n\nThe completed result was kept. Click Open Last Result to open it in a new document without generating again.";
+          logger.warn(`Completed result retained for recovery: ${recoveryFile.nativePath || recoveryFile.name}.`);
+        }
         if (isActionPlayback) {
           throw error;
         }
-        await globalThis.SeedVR2Photoshop.showAlert(error.message || String(error));
+        await globalThis.SeedVR2Photoshop.showAlert((error.message || String(error)) + recoveryNote);
       }
     } finally {
       await globalThis.SeedVR2Photoshop.deleteEntryQuietly(exportedFile);
-      if (!openedResultDocument) {
+      if (!openedResultDocument && !retainedForRecovery) {
         await globalThis.SeedVR2Photoshop.deleteEntryQuietly(downloaded && downloaded.file);
-      } else if (downloaded && downloaded.file) {
+      } else if (openedResultDocument && downloaded && downloaded.file) {
         logger.info(`Retained temporary result while the Photoshop document is open: ${downloaded.file.name}.`);
       }
       if (downloaded && downloaded.objectUrl) {
@@ -336,6 +447,29 @@
 
   async function handleUpscale() {
     await runUpscale({ allowStop: true, recordAction: true });
+  }
+
+  async function openLastResult() {
+    if (isWorking || !recoveryFile) { return; }
+    const file = recoveryFile;
+    const token = { cancelled: false };
+    cancelToken = token;
+    setBusy(true);
+    $("progressStatus").textContent = "Opening completed result...";
+    try {
+      await globalThis.SeedVR2Photoshop.openResultDocument(file, logger, token);
+      recoveryFile = null;
+      $("openLastResultBtn").hidden = true;
+      logger.info("Opened retained result without rerunning ComfyUI.");
+    } catch (error) {
+      if (error.kind !== "cancelled") {
+        logger.error(globalThis.SeedVR2Logger.formatError(error));
+        await globalThis.SeedVR2Photoshop.showAlert(error.message || String(error));
+      }
+    } finally {
+      cancelToken = null;
+      setBusy(false);
+    }
   }
 
   function bindModeToggle(element, mode) {
@@ -356,7 +490,7 @@
   function attachEvents() {
     bindModeToggle($("scaleModeToggle"), "scale");
     bindModeToggle($("pixelsModeToggle"), "pixels");
-    document.querySelectorAll(".scale-button").forEach((button) => {
+    document.querySelectorAll(".scale-button[data-factor]").forEach((button) => {
       button.addEventListener("click", () => {
         if (isWorking) {
           return;
@@ -375,6 +509,7 @@
     const normalizeShortestSideInput = () => {
       writeShortestSideText(getShortestSideInput());
       saveSettings();
+      renderTilePreview();
     };
     $("shortestSideInput").addEventListener("focus", () => {
       if (isWorking) {
@@ -402,6 +537,7 @@
     });
     $("shortestSideInput").addEventListener("input", () => {
       sanitizeShortestSideInput();
+      renderTilePreview();
     });
     $("shortestSideInput").addEventListener("change", normalizeShortestSideInput);
     $("newWindowToggle").addEventListener("click", () => {
@@ -420,6 +556,20 @@
     $("upscaleBtn").addEventListener("click", handleUpscale);
     $("upscaleBtn").addEventListener("mouseenter", updateBusyLabel);
     $("upscaleBtn").addEventListener("mouseleave", updateBusyLabel);
+    $("openLastResultBtn").addEventListener("click", openLastResult);
+    document.querySelectorAll(".tile-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!isWorking) { setTiled(true, button.dataset.parts); }
+      });
+    });
+    const toggleTiled = () => { if (!isWorking) { setTiled(!tiledEnabled, tileCount); } };
+    $("tiledToggle").addEventListener("click", toggleTiled);
+    $("tiledToggle").addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleTiled();
+      }
+    });
   }
 
   globalThis[ACTION_METHOD_NAME] = async function seedVR2RecordedUpscale(executionContext, info) {
@@ -436,8 +586,11 @@
     );
     setFactor(settings.factor, { save: false });
     setNewWindow(settings.newWindow, { save: false });
+    setTiled(settings.tiledEnabled, settings.tileCount, { save: false });
     setMode(settings.activeMode, { save: false });
     attachEvents();
-    logger.info("SeedVR2 Upscaler is ready.");
+    refreshSourcePreview();
+    setInterval(refreshSourcePreview, 1500);
+    logger.info("SeedVR2 Upscaler 0.2.0 is ready.");
   });
 })();

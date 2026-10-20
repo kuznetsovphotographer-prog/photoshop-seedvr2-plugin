@@ -6,7 +6,9 @@
     activeMode: "scale",
     factor: 2,
     shortestSide: 2000,
-    newWindow: false
+    newWindow: false,
+    tiledEnabled: false,
+    tileCount: 4
   };
 
   function clamp(value, min, max) {
@@ -37,7 +39,9 @@
       activeMode: settings && settings.activeMode === "pixels" ? "pixels" : "scale",
       factor: normalizeFactor(settings && settings.factor),
       shortestSide: normalizeShortestSide(settings && settings.shortestSide),
-      newWindow: normalizeNewWindow(settings && settings.newWindow)
+      newWindow: normalizeNewWindow(settings && settings.newWindow),
+      tiledEnabled: Boolean(settings && settings.tiledEnabled === true),
+      tileCount: [2, 4, 6].includes(Number(settings && settings.tileCount)) ? Number(settings.tileCount) : 4
     };
   }
 

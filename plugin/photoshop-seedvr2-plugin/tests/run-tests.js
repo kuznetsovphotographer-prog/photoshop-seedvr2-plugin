@@ -129,3 +129,9 @@ try {
 assert(rejectedTorchCompile, "mapper must reject Torch Compile");
 
 console.log("SeedVR2 tests passed");
+const verification = require("child_process").spawnSync(process.execPath, [
+  "--test", path.join(__dirname, "tiling.test.js"),
+  path.join(__dirname, "output-routing.test.js"), path.join(__dirname, "photoshop-assembly.test.js")
+], { stdio: "inherit" });
+if (verification.error) { throw verification.error; }
+if (verification.status !== 0) { process.exitCode = verification.status || 1; }

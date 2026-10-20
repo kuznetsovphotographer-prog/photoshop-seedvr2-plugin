@@ -94,17 +94,37 @@
             </div>
           </div>
         </section>
+        <section class="tiled-section">
+          <div class="tiled-heading">
+            <span class="output-title">Tiled Upscale</span>
+            <div id="tiledToggle" class="new-window-toggle" role="switch" aria-checked="false" aria-label="Tiled Upscale Off" tabindex="0">
+              <span id="tiledState" class="new-window-state">OFF</span>
+              <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+            </div>
+          </div>
+          <div id="tileButtons" class="scale-grid is-disabled">
+            <button class="tile-button scale-button" type="button" data-parts="2" aria-pressed="false">2 parts</button>
+            <button class="tile-button scale-button" type="button" data-parts="4" aria-pressed="false">4 parts</button>
+            <button class="tile-button scale-button" type="button" data-parts="6" aria-pressed="false">6 parts</button>
+          </div>
+          <p id="tilePreview" class="tile-preview">Process and blend image parts</p>
+        </section>
       </div>
 
+      <div id="progressStatus" class="progress-status" role="status" aria-live="polite" hidden></div>
+      <button id="openLastResultBtn" class="scale-button recovery-button" type="button" hidden>Open Last Result</button>
       <div id="loaderProgress" class="loader-progress" aria-hidden="true"></div>
     </main>
 
     <script src="src/logger.js"></script>
     <script src="src/settings.js"></script>
     <script src="src/imageSizing.js"></script>
+    <script src="src/tileLayout.js"></script>
+    <script src="src/tileBlending.js"></script>
     <script src="src/workflowMapper.js"></script>
     <script src="src/comfyClient.js"></script>
     <script src="src/photoshop.js"></script>
+    <script src="src/tiledUpscale.js"></script>
     <script src="src/main.js"></script>
   </body>
 </html>

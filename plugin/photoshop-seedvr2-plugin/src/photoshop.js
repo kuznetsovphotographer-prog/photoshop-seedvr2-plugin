@@ -112,6 +112,10 @@
     }
   }
 
+  function historyName(history) {
+    try { return history ? history.name || "" : ""; } catch (error) { return ""; }
+  }
+
   async function inspectSource(logger) {
     logStage(logger, "inspect-source:start");
     const doc = await getActiveDocument();
@@ -136,13 +140,16 @@
       docId: doc.id,
       docTitle: doc.title || doc.name || "Untitled",
       historyStateId: historyState ? historyState.id : null,
+      historyStateName: historyName(historyState),
       documentWidth: width,
       documentHeight: height,
+      resolution: Number(doc.resolution) || 72,
       bounds,
       width: size.width,
       height: size.height
     };
     logStage(logger, "inspect-source:done", `${source.mode} ${source.width}x${source.height}`);
+    logSourceCheckpoint(source, logger, "captured");
     return source;
   }
 
@@ -152,7 +159,7 @@
     const file = await tempFolder.createFile(`seedvr2-source-${Date.now()}.png`, { overwrite: true });
 
     await core.executeAsModal(async () => {
-      const sourceDoc = getDocumentById(source.docId);
+      const sourceDoc = verifyDocumentUnchanged(source, logger, "before-export");
       if (!sourceDoc) {
         throw new Error("The original Photoshop document was closed before export.");
       }
@@ -184,21 +191,44 @@
     return file;
   }
 
-  function verifyDocumentUnchanged(snapshot) {
+  function logSourceCheckpoint(snapshot, logger, stage) {
     const doc = getDocumentById(snapshot.docId);
+    const history = doc ? doc.activeHistoryState : null;
+    const current = doc ? {
+      width: Math.round(toNumber(doc.width)), height: Math.round(toNumber(doc.height)),
+      historyId: history ? history.id : null, historyName: historyName(history)
+    } : null;
+    logger && logger.info(`Source checkpoint ${stage}: ${JSON.stringify({
+      documentId: snapshot.docId,
+      expected: { width: snapshot.documentWidth, height: snapshot.documentHeight,
+        historyId: snapshot.historyStateId, historyName: snapshot.historyStateName || "" },
+      current
+    })}`);
+    return current;
+  }
+
+  function verifyDocumentUnchanged(snapshot, logger, stage = "verify") {
+    const doc = getDocumentById(snapshot.docId);
+    const current = logSourceCheckpoint(snapshot, logger, stage);
     if (!doc) {
-      throw new Error("The original Photoshop document was closed while SeedVR2 was working.");
+      const error = new Error(`The original Photoshop document was closed while SeedVR2 was working (document ${snapshot.docId}).`);
+      error.kind = "source_changed";
+      throw error;
     }
-    const historyState = doc.activeHistoryState || null;
-    const historyStateId = historyState ? historyState.id : null;
-    const width = Math.round(toNumber(doc.width));
-    const height = Math.round(toNumber(doc.height));
+    const historyStateId = current.historyId;
+    const width = current.width;
+    const height = current.height;
     if (
       historyStateId !== snapshot.historyStateId ||
       width !== snapshot.documentWidth ||
       height !== snapshot.documentHeight
     ) {
-      throw new Error("The Photoshop document changed while SeedVR2 was working. Automatic replacement was cancelled.");
+      const reason = width !== snapshot.documentWidth || height !== snapshot.documentHeight
+        ? `Size: ${snapshot.documentWidth}x${snapshot.documentHeight} -> ${width}x${height}.`
+        : `History: ${snapshot.historyStateId} (${snapshot.historyStateName || "start"}) -> ${historyStateId} (${current.historyName || "current"}).`;
+      const error = new Error(`The Photoshop document changed while SeedVR2 was working. Automatic replacement was cancelled. ${reason}`);
+      error.kind = "source_changed";
+      throw error;
     }
     return doc;
   }
@@ -343,15 +373,16 @@
     logger && logger.info(`Placed layer bounds: left ${alignedBounds.left}, top ${alignedBounds.top}, right ${alignedBounds.right}, bottom ${alignedBounds.bottom}.`);
   }
 
-  async function placeSelectionResultIntoSource(file, snapshot, logger) {
+  async function placeSelectionResultIntoSource(file, snapshot, logger, token) {
     if (!snapshot || snapshot.mode !== "selection") {
       throw new Error("SeedVR2 can place a result into the source document only when a selection was exported.");
     }
-    verifyDocumentUnchanged(snapshot);
+    verifyDocumentUnchanged(snapshot, logger, "before-selection-apply");
     logStage(logger, "apply-selection:start");
 
     return core.executeAsModal(async (executionContext) => {
-      const sourceDoc = verifyDocumentUnchanged(snapshot);
+      checkTileCancel(token, executionContext);
+      const sourceDoc = verifyDocumentUnchanged(snapshot, logger, "selection-apply-modal");
       let suspension = null;
       try {
         await activateDocumentById(snapshot.docId);
@@ -377,6 +408,7 @@
         await setRectangleSelection(snapshot.bounds);
         await activateDocumentById(snapshot.docId);
 
+        checkTileCancel(token, executionContext);
         await executionContext.hostControl.resumeHistory(suspension, true);
         suspension = null;
         logStage(logger, "apply-selection:done", `${snapshot.width}x${snapshot.height}`);
@@ -394,12 +426,13 @@
     }, { commandName: "Place SeedVR2 selection result" });
   }
 
-  async function replaceDocumentWithResult(file, snapshot, logger) {
-    verifyDocumentUnchanged(snapshot);
+  async function replaceDocumentWithResult(file, snapshot, logger, token) {
+    verifyDocumentUnchanged(snapshot, logger, "before-document-apply");
     logStage(logger, "apply-document:start");
 
     return core.executeAsModal(async (executionContext) => {
-      const sourceDoc = verifyDocumentUnchanged(snapshot);
+      checkTileCancel(token, executionContext);
+      const sourceDoc = verifyDocumentUnchanged(snapshot, logger, "document-apply-modal");
       let resultDoc = null;
       let suspension = null;
       try {
@@ -440,6 +473,7 @@
         await closeWithoutSaving(resultDoc);
         resultDoc = null;
 
+        checkTileCancel(token, executionContext);
         await executionContext.hostControl.resumeHistory(suspension, true);
         suspension = null;
         logStage(logger, "apply-document:done", `${width}x${height}`);
@@ -460,13 +494,185 @@
     }, { commandName: "Apply SeedVR2 result" });
   }
 
-  async function openResultDocument(file, logger) {
+  async function openResultDocument(file, logger, token) {
     logStage(logger, "open-result-document:start");
-    return core.executeAsModal(async () => {
+    return core.executeAsModal(async (context) => {
+      checkTileCancel(token, context);
       const doc = await app.open(file);
+      if ((token && token.cancelled) || context.isCancelled) {
+        await closeWithoutSaving(doc);
+        checkTileCancel(token, context);
+      }
       logger && logger.info("Opened the SeedVR2 result as a new Photoshop document.");
       return doc;
     }, { commandName: "Open SeedVR2 result" });
+  }
+
+  function assertTilingSupported() {
+    const imaging = photoshop.imaging;
+    if (!imaging || !["getPixels", "createImageDataFromBuffer", "putPixels"].every((name) => typeof imaging[name] === "function")) {
+      throw new Error("Tiled Upscale requires Photoshop with Imaging API support (24.4 or newer).");
+    }
+  }
+
+  function checkTileCancel(token, context) {
+    if (token && context && context.isCancelled) {
+      token.cancelled = true;
+    }
+    globalThis.SeedVR2TiledUpscale.throwIfCancelled(token);
+  }
+
+  async function newTemporaryPng(label) {
+    const folder = await fs.getTemporaryFolder();
+    return folder.createFile(`seedvr2-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}.png`, { overwrite: false });
+  }
+
+  async function exportTilesFromSnapshot(file, snapshot, layout, logger, token) {
+    const files = [];
+    try {
+      await core.executeAsModal(async (context) => {
+        let frozenDoc = null;
+        let cropDoc = null;
+        try {
+          checkTileCancel(token, context);
+          frozenDoc = await app.open(file);
+          if (Math.round(toNumber(frozenDoc.width)) !== layout.width || Math.round(toNumber(frozenDoc.height)) !== layout.height) {
+            throw new Error("The exported snapshot does not match the selected area dimensions.");
+          }
+          for (const tile of layout.tiles) {
+            checkTileCancel(token, context);
+            cropDoc = await frozenDoc.duplicate(`SeedVR2 part ${tile.index + 1}`, true);
+            await cropDoc.crop(tile.bounds);
+            if (Math.round(toNumber(cropDoc.width)) !== layout.tileWidth || Math.round(toNumber(cropDoc.height)) !== layout.tileHeight) {
+              throw new Error("Photoshop cropped a part to unexpected dimensions.");
+            }
+            const cropFile = await newTemporaryPng(`part-${tile.index + 1}`);
+            files.push(cropFile);
+            await cropDoc.saveAs.png(cropFile, {}, true);
+            await closeWithoutSaving(cropDoc);
+            cropDoc = null;
+            logger && logger.info(`Exported part ${tile.index + 1}/${layout.count}: ${layout.tileWidth}x${layout.tileHeight}.`);
+          }
+        } finally {
+          if (cropDoc) { await closeWithoutSaving(cropDoc).catch(() => null); }
+          if (frozenDoc) { await closeWithoutSaving(frozenDoc).catch(() => null); }
+          if (getDocumentById(snapshot.docId)) { await activateDocumentById(snapshot.docId).catch(() => null); }
+        }
+      }, { commandName: "Prepare SeedVR2 parts" });
+      return files;
+    } catch (error) {
+      for (const entry of files) { await deleteEntryQuietly(entry); }
+      throw error;
+    }
+  }
+
+  async function assembleTileResults(outputs, snapshot, layout, logger, token, onProgress) {
+    assertTilingSupported();
+    const blend = globalThis.SeedVR2TileBlending;
+    const imaging = photoshop.imaging;
+    const resultFile = await newTemporaryPng("stitched");
+    try {
+      await core.executeAsModal(async (context) => {
+        const documents = [];
+        let resultDoc = null;
+        try {
+          for (const output of outputs) {
+            checkTileCancel(token, context);
+            const doc = await app.open(output.file);
+            documents.push({ doc, tile: output.tile });
+            const target = output.tile.target;
+            const width = target.right - target.left;
+            const height = target.bottom - target.top;
+            if (Math.round(toNumber(doc.width)) !== width || Math.round(toNumber(doc.height)) !== height) {
+              await doc.resizeImage(width, height, undefined, constants.ResampleMethod.BICUBIC);
+            }
+            if (Math.round(toNumber(doc.width)) !== width || Math.round(toNumber(doc.height)) !== height) {
+              throw new Error("Photoshop could not align an upscaled part to the assembly grid.");
+            }
+          }
+          checkTileCancel(token, context);
+          resultDoc = await app.documents.add({
+            name: "SeedVR2 stitched result", width: layout.targetWidth, height: layout.targetHeight,
+            resolution: snapshot.resolution || 72, mode: "RGBColorMode", fill: "transparent", depth: 8,
+            profile: "sRGB IEC61966-2.1"
+          });
+          const layer = activeLayer(resultDoc);
+          if (!layer) { throw new Error("Photoshop did not create a raster layer for the stitched result."); }
+          layer.name = "SeedVR2 Upscale";
+          const blocksX = Math.ceil(layout.targetWidth / 1024);
+          const blocksY = Math.ceil(layout.targetHeight / 128);
+          let completed = 0;
+          // Bound JS memory independently of the final image size. Photoshop owns the tile documents.
+          for (let top = 0; top < layout.targetHeight; top += 128) {
+            for (let left = 0; left < layout.targetWidth; left += 1024) {
+              checkTileCancel(token, context);
+              const bounds = { left, top, right: Math.min(left + 1024, layout.targetWidth), bottom: Math.min(top + 128, layout.targetHeight) };
+              const accumulator = blend.createAccumulator(bounds);
+              for (const item of documents) {
+                const region = blend.intersection(bounds, item.tile.target);
+                if (!region) { continue; }
+                checkTileCancel(token, context);
+                let image = null;
+                try {
+                  image = await imaging.getPixels({
+                    documentID: item.doc.id,
+                    sourceBounds: {
+                      left: region.left - item.tile.target.left, top: region.top - item.tile.target.top,
+                      right: region.right - item.tile.target.left, bottom: region.bottom - item.tile.target.top
+                    },
+                    colorSpace: "RGB", colorProfile: "sRGB IEC61966-2.1", componentSize: 8, applyAlpha: false
+                  });
+                  const imageData = image && image.imageData;
+                  if (imageData && imageData.width > 0 && imageData.height > 0) {
+                    if (image.level !== undefined && image.level !== 0) { throw new Error("Photoshop returned reduced-resolution tile pixels."); }
+                    if (![3, 4].includes(imageData.components)) { throw new Error("Photoshop returned an unsupported tile pixel format."); }
+                    const actual = plainBounds(image.sourceBounds);
+                    const originX = item.tile.target.left + actual.left;
+                    const originY = item.tile.target.top + actual.top;
+                    blend.addTile(accumulator, item.tile, {
+                      bounds: { left: originX, top: originY, right: originX + imageData.width, bottom: originY + imageData.height },
+                      width: imageData.width, components: imageData.components,
+                      data: await imageData.getData({ chunky: true })
+                    });
+                  } else {
+                    blend.addTile(accumulator, item.tile, null);
+                  }
+                } finally {
+                  if (image && image.imageData) { image.imageData.dispose(); }
+                }
+              }
+              const data = blend.finish(accumulator);
+              let imageData = null;
+              try {
+                imageData = await imaging.createImageDataFromBuffer(data, {
+                  width: bounds.right - bounds.left, height: bounds.bottom - bounds.top, components: 4,
+                  chunky: true, colorSpace: "RGB", colorProfile: "sRGB IEC61966-2.1"
+                });
+                checkTileCancel(token, context);
+                await imaging.putPixels({ documentID: resultDoc.id, layerID: layer.id, imageData,
+                  replace: false, targetBounds: { left, top } });
+              } finally {
+                if (imageData) { imageData.dispose(); }
+              }
+              completed += 1;
+              onProgress && onProgress(completed / (blocksX * blocksY));
+              await new Promise((resolve) => setTimeout(resolve, 0));
+            }
+          }
+          checkTileCancel(token, context);
+          await resultDoc.saveAs.png(resultFile, {}, true);
+          logger && logger.info(`Stitched ${layout.count} parts: ${layout.targetWidth}x${layout.targetHeight}px, sRGB RGBA.`);
+        } finally {
+          if (resultDoc) { await closeWithoutSaving(resultDoc).catch(() => null); }
+          for (const item of documents) { await closeWithoutSaving(item.doc).catch(() => null); }
+          if (getDocumentById(snapshot.docId)) { await activateDocumentById(snapshot.docId).catch(() => null); }
+        }
+      }, { commandName: "Stitch SeedVR2 parts" });
+      return resultFile;
+    } catch (error) {
+      await deleteEntryQuietly(resultFile);
+      throw error;
+    }
   }
 
   async function deleteEntryQuietly(entry) {
@@ -489,6 +695,9 @@
   }
 
   globalThis.SeedVR2Photoshop = {
+    assertTilingSupported,
+    assembleTileResults,
+    exportTilesFromSnapshot,
     deleteEntryQuietly,
     exportVisibleMergedPng,
     inspectSource,
@@ -496,6 +705,7 @@
     placeSelectionResultIntoSource,
     replaceDocumentWithResult,
     showAlert,
-    verifyDocumentUnchanged
+    verifyDocumentUnchanged,
+    logSourceCheckpoint
   };
 })();

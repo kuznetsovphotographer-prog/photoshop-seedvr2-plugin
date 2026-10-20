@@ -277,13 +277,14 @@
       );
     }
 
-    waitForSocketDone(ws, promptId, onProgress, cancelToken) {
+    waitForSocketDone(ws, promptId, onProgress, cancelToken, bufferedEvents, deadline) {
       return new Promise((resolve, reject) => {
         let settled = false;
 
         const cleanup = () => {
           clearTimeout(timeout);
           clearInterval(cancelCheck);
+          ws.onclose = null;
         };
 
         const closeSocket = () => {
@@ -318,7 +319,7 @@
           const error = new Error("Generation timed out after 30 minutes.");
           error.kind = "timeout";
           rejectOnce(error);
-        }, 30 * 60 * 1000);
+        }, Math.max(1, (deadline || Date.now() + 30 * 60 * 1000) - Date.now()));
 
         const cancelCheck = setInterval(() => {
           if (isCancelled(cancelToken)) {
@@ -326,29 +327,16 @@
           }
         }, 250);
 
-        const originalOnMessage = ws.onmessage;
-        ws.onmessage = (event) => {
+        const processMessage = (message) => {
           if (settled) {
             return;
-          }
-          if (originalOnMessage) {
-            originalOnMessage(event);
           }
           if (isCancelled(cancelToken)) {
             rejectOnce(cancelledError());
             return;
           }
-          if (typeof event.data !== "string") {
-            return;
-          }
-          let message;
-          try {
-            message = JSON.parse(event.data);
-          } catch (error) {
-            return;
-          }
-
-          if (message.type === "progress" && message.data) {
+          if (message.type === "progress" && message.data &&
+              (!message.data.prompt_id || message.data.prompt_id === promptId)) {
             onProgress && onProgress(message.data);
           }
 
@@ -372,24 +360,43 @@
             resolveOnce();
           }
         };
+        ws.onmessage = (event) => {
+          if (typeof event.data !== "string") { return; }
+          let message;
+          try { message = JSON.parse(event.data); } catch (error) { return; }
+          processMessage(message);
+        };
+        ws.onclose = () => rejectOnce(new Error("ComfyUI WebSocket closed. Continuing with history polling."));
+        ws.onerror = () => rejectOnce(new Error("ComfyUI WebSocket failed. Continuing with history polling."));
+        for (const message of bufferedEvents || []) { processMessage(message); }
+        if (!settled && ws.readyState === 3) { ws.onclose(); }
       });
     }
 
-    async waitForHistoryImage(promptId, preferredNodeId, cancelToken) {
-      const started = Date.now();
-      while (Date.now() - started < 30 * 60 * 1000) {
+    async waitForHistoryImage(promptId, preferredNodeId, cancelToken, deadline) {
+      const end = deadline || Date.now() + 30 * 60 * 1000;
+      while (Date.now() < end) {
         if (isCancelled(cancelToken)) {
           throw cancelledError();
         }
         const history = await this.getHistory(promptId);
         const entry = history[promptId];
+        const messages = entry && entry.status && entry.status.messages || [];
+        const failure = messages.find((message) => message[0] === "execution_error" || message[0] === "execution_interrupted");
+        if (failure || (entry && entry.status && entry.status.status_str === "error")) {
+          const error = new Error(failure && failure[1] && failure[1].exception_message || "ComfyUI generation failed or was interrupted.");
+          error.kind = failure ? failure[0] : "execution_error";
+          throw error;
+        }
         const image = findOutputImage(entry, preferredNodeId);
         if (image) {
           return image;
         }
         await new Promise((resolve) => setTimeout(resolve, 1200));
       }
-      throw new Error("ComfyUI history did not contain an output image.");
+      const error = new Error("Generation timed out after 30 minutes.");
+      error.kind = "timeout";
+      throw error;
     }
 
     async runPrompt(prompt, preferredOutputNodeId, onProgress, options) {
@@ -397,6 +404,7 @@
       const clientId = makeClientId();
       let lastEvent = null;
       let ws = null;
+      const bufferedEvents = [];
 
       if (isCancelled(cancelToken)) {
         throw cancelledError();
@@ -405,16 +413,20 @@
       try {
         ws = await this.openSocket(clientId, (message) => {
           lastEvent = message;
+          bufferedEvents.push(message);
+          if (bufferedEvents.length > 64) { bufferedEvents.shift(); }
         });
       } catch (error) {
         this.logger && this.logger.warn(`${error.message} Continuing with history polling.`);
       }
 
+      try {
       if (isCancelled(cancelToken)) {
         throw cancelledError();
       }
 
       const promptId = await this.queuePrompt(prompt, clientId);
+      const deadline = Date.now() + 30 * 60 * 1000;
       if (options && typeof options.onPromptQueued === "function") {
         options.onPromptQueued(promptId);
       }
@@ -428,17 +440,20 @@
 
       if (ws) {
         try {
-          await this.waitForSocketDone(ws, promptId, onProgress, cancelToken);
+          await this.waitForSocketDone(ws, promptId, onProgress, cancelToken, bufferedEvents, deadline);
         } catch (error) {
-          if (error.kind === "execution_error" || error.kind === "execution_interrupted" || error.kind === "cancelled") {
+          if (error.kind === "execution_error" || error.kind === "execution_interrupted" || error.kind === "cancelled" || error.kind === "timeout") {
             throw error;
           }
           this.logger && this.logger.warn(`${error.message} Falling back to history polling.`);
         }
       }
 
-      const image = await this.waitForHistoryImage(promptId, preferredOutputNodeId, cancelToken);
+      const image = await this.waitForHistoryImage(promptId, preferredOutputNodeId, cancelToken, deadline);
       return { promptId, image, lastEvent };
+      } finally {
+        if (ws) { try { ws.close(); } catch (error) { /* Already closed. */ } }
+      }
     }
 
     async downloadImage(image) {

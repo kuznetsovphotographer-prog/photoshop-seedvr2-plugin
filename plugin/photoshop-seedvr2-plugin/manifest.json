@@ -2,24 +2,46 @@
   "manifestVersion": 5,
   "id": "com.local.photoshop.seedvr2-upscaler",
   "name": "SeedVR2 Upscaler",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "main": "index.html",
   "icons": [
     {
       "width": 23,
       "height": 23,
       "path": "icons/icon-23@1x.png",
-      "scale": [1],
-      "theme": ["darkest", "dark", "medium", "lightest", "light", "all"],
-      "species": ["pluginList"]
+      "scale": [
+        1
+      ],
+      "theme": [
+        "darkest",
+        "dark",
+        "medium",
+        "lightest",
+        "light",
+        "all"
+      ],
+      "species": [
+        "pluginList"
+      ]
     },
     {
       "width": 46,
       "height": 46,
       "path": "icons/icon-46@2x.png",
-      "scale": [2],
-      "theme": ["darkest", "dark", "medium", "lightest", "light", "all"],
-      "species": ["pluginList"]
+      "scale": [
+        2
+      ],
+      "theme": [
+        "darkest",
+        "dark",
+        "medium",
+        "lightest",
+        "light",
+        "all"
+      ],
+      "species": [
+        "pluginList"
+      ]
     }
   ],
   "host": {
@@ -51,17 +73,39 @@
           "width": 23,
           "height": 23,
           "path": "icons/icon-23@1x.png",
-          "scale": [1],
-          "theme": ["darkest", "dark", "medium", "lightest", "light", "all"],
-          "species": ["pluginList"]
+          "scale": [
+            1
+          ],
+          "theme": [
+            "darkest",
+            "dark",
+            "medium",
+            "lightest",
+            "light",
+            "all"
+          ],
+          "species": [
+            "pluginList"
+          ]
         },
         {
           "width": 46,
           "height": 46,
           "path": "icons/icon-46@2x.png",
-          "scale": [2],
-          "theme": ["darkest", "dark", "medium", "lightest", "light", "all"],
-          "species": ["pluginList"]
+          "scale": [
+            2
+          ],
+          "theme": [
+            "darkest",
+            "dark",
+            "medium",
+            "lightest",
+            "light",
+            "all"
+          ],
+          "species": [
+            "pluginList"
+          ]
         }
       ],
       "minimumSize": {
@@ -74,11 +118,11 @@
       },
       "preferredDockedSize": {
         "width": 380,
-        "height": 540
+        "height": 660
       },
       "preferredFloatingSize": {
         "width": 380,
-        "height": 540
+        "height": 660
       }
     }
   ]

@@ -1,136 +1,132 @@
 # SeedVR2 Upscaler for Adobe Photoshop
 
-Локальный AI-апскейлер для Adobe Photoshop, который связывает компактную UXP-панель с вашим ComfyUI и SeedVR2.
+**v0.2.0 · Local AI upscaling · ComfyUI · Tiled Upscale**
 
-Плагин умеет увеличивать весь документ, улучшать только выделенную область, возвращать результат в исходный Photoshop-документ или открывать его в новом окне. После установки моделей обработка выполняется локально на компьютере.
+Увеличивайте фотографии прямо из Photoshop: целиком или только в выделенной области. Обработка идёт локально через ComfyUI и SeedVR2.
 
-Слева исходник, справа результат SeedVR2:
+**Новое в 0.2.0:** апскейл по **2, 4 или 6 частям** с перекрытиями и плавной сборкой. Можно получить изображение около 4K и выше, не отправляя весь большой кадр в модель за один проход.
 
-![SeedVR2: до и после](media/images/before-after.jpg)
+[Скачать для Windows](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.0/SeedVR2-Upscaler-v0.2.0-Windows.zip) · [Установка](docs/INSTALLATION_RU.md) · [Как пользоваться](docs/USAGE_RU.md) · [GIF-демонстрации](docs/DEMONSTRATIONS_RU.md) · [Что изменилось](RELEASE_NOTES_v0.2.0.md)
 
-<p align="center">
-  <img src="media/images/plugin-panel.jpg" width="330" alt="Панель SeedVR2 Upscaler в Adobe Photoshop">
-</p>
+![До и после SeedVR2: один участок портрета в общем масштабе](media/images/tiled-before-after.jpg)
 
-## Скачать
+*Фрагменты предоставлены автором. Для сравнения они совмещены и приведены к общему масштабу, без дополнительной резкости и ретуши. Это не попиксельное сравнение 1:1. [Исходный фрагмент](media/images/before-detail.jpg) · [Результат](media/images/after-detail.jpg).*
 
-- [Скачать комплект установки для Windows ZIP](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/raw/main/ccx/SeedVR2-Upscaler-v0.1.1-Windows.zip)
-- [Скачать готовый CCX-пакет v0.1.1](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/raw/main/ccx/com.local.photoshop.seedvr2-upscaler_PS.ccx)
-- [Скачать BAT-установщик для Windows](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/raw/main/ccx/INSTALL_SEEDVR2_UPSCALER.bat)
-- [Скачать BAT-файл удаления](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/raw/main/ccx/UNINSTALL_SEEDVR2_UPSCALER.bat)
-- [Скачать API workflow для ComfyUI](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/raw/main/workflows/workflows-for-comfyui/seedvr2_simple_image_upscale_api.json)
+## Скачать 0.2.0
 
-Полная инструкция: [docs/INSTALLATION_RU.md](docs/INSTALLATION_RU.md).
+| Файл | Для чего |
+| --- | --- |
+| [Windows ZIP](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.0/SeedVR2-Upscaler-v0.2.0-Windows.zip) | Рекомендуемый комплект: CCX, установка, удаление, инструкция и API workflow |
+| [Готовый CCX](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.0/com.local.photoshop.seedvr2-upscaler_PS.ccx) | Установка через Adobe Creative Cloud |
+| [Установщик BAT](ccx/INSTALL_SEEDVR2_UPSCALER.bat) · [Удаление BAT](ccx/UNINSTALL_SEEDVR2_UPSCALER.bat) | Для Windows; установщику нужен CCX в той же папке |
+| [Workflow ComfyUI](workflows/workflows-for-comfyui/seedvr2_simple_image_upscale_api.json) | Узлы и модели нужно подготовить отдельно |
+| [SHA256](ccx/SHA256SUMS.txt) | Контрольные суммы файлов |
 
-## Демонстрация
+Сначала распакуйте ZIP целиком. Не запускайте BAT из окна архива. [Предыдущая версия 0.1.1](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/tag/v0.1.1) остаётся доступна отдельно.
 
-Ниже показана локальная обработка выделенной области и возврат результата в Photoshop новым слоем.
+## Что Даёт Tiled Upscale
 
-![Локальная обработка SeedVR2](media/gif/local-selection-demo.gif)
+| Обычный апскейл | Апскейл по частям |
+| --- | --- |
+| В модель уходит весь кадр или рамка выделения | В модель по очереди уходят 2, 4 или 6 фрагментов |
+| Предел 2500 px по короткой стороне результата | Предел 2500 px по короткой стороне **каждой части**, включая перекрытие |
+| Один запрос SeedVR2 | Несколько последовательных запросов и сборка одного PNG |
+| Подходит для небольших изображений | Помогает обрабатывать крупный кадр меньшими фрагментами |
 
-Оригинальный ролик в MP4: [local-selection-demo.mp4](media/video/local-selection-demo.mp4).
+Части берутся с запасом по краям: перекрытие до 128 исходных пикселей. После обработки плагин совмещает их и смешивает пересечения плавными весами с учётом прозрачности.
 
-## Возможности
+Такой режим может снизить пиковый расход видеопамяти на обработку кадра. Особенно полезно, если модель уже запускается, но целое изображение слишком велико. **Память для весов модели всё равно нужна:** комплект использует тяжёлую 7B FP16, поэтому работа на видеокартах с малым объёмом VRAM не гарантируется. Больше частей также не означает более быструю обработку.
 
-- увеличение всего изображения в `2x`, `3x` или `4x`;
-- точный размер короткой стороны через `Shortest Side Limit`;
-- максимальная короткая сторона результата: `2500 px`;
-- обработка прямоугольного выделения или bounding box произвольного выделения;
-- возврат локально улучшенного фрагмента новым слоем;
-- открытие готового изображения отдельным Photoshop-документом;
-- прогресс ComfyUI прямо в нижней полосе панели;
-- остановка текущей генерации кнопкой `Stop`;
-- запись запуска плагина в Photoshop Actions для повторной и пакетной обработки;
-- локальная передача PNG в ComfyUI по адресу `http://127.0.0.1:8188`.
+Стыки могут оставаться заметными: соседние генерации иногда различаются деталями и оттенками. Проверяйте лицо, текст и границы при 100%.
 
-## Четыре режима вывода
+## Реальный Пример: Выше 4K По Длинной Стороне
 
-| Выделение | `New Window OFF` | `New Window ON` |
+В записи автора: **1800 × 2417 → 3600 × 4834 px**, режим **2x**, **4 части**. Это двукратный рост ширины и высоты, то есть примерно вчетверо больше пикселей. Количество частей не умножает масштаб повторно.
+
+![Размер исходника и результата в Photoshop](media/gif/resolution-check.gif)
+
+Итоговый размер зависит от исходника, количества частей, перекрытий и выбранной цели. До запуска он показан внизу панели. Если появился текст `2500 px limit per part`, выбранный множитель был ограничен.
+
+## Панель И Запуск
+
+<table>
+<tr>
+<td width="38%" valign="top">
+<img src="media/gif/tiled-controls.gif" width="300" alt="Реальная панель SeedVR2 0.2.0: выбор режима и количества частей">
+</td>
+<td valign="top">
+
+1. Запустите ComfyUI на `http://127.0.0.1:8188`.
+2. Откройте фотографию; при необходимости создайте выделение.
+3. Выберите `2x / 3x / 4x` или `Shortest Side Limit`.
+4. Выберите `New Window`: новый документ или возврат в исходный.
+5. Включите `Tiled Upscale` и выберите `2 / 4 / 6 parts`.
+6. Проверьте рассчитанный размер и нажмите `Upscale`.
+
+При выключенном `Tiled Upscale` работает обычный апскейл. Нажатие кнопки частей сразу включает tiled-режим. Настройки запоминаются.
+
+</td>
+</tr>
+</table>
+
+[Статичный снимок панели крупно](media/images/plugin-panel-v0.2.0.jpg) · [Все демонстрации](docs/DEMONSTRATIONS_RU.md)
+
+`Scale Multiplier` масштабирует каждую часть в 2, 3 или 4 раза, пока не сработает лимит. В tiled-режиме `Shortest Side Limit` задаёт **500–2500 px для короткой стороны части**, а не всей сборки.
+
+## Куда Попадает Результат
+
+Обычный и tiled-режим поддерживают все четыре сценария:
+
+| Источник | New Window OFF | New Window ON |
 | --- | --- | --- |
-| Нет | Текущий документ заменяется увеличенной версией. Одно Undo восстанавливает исходное состояние. | Результат открывается новым документом, исходник не меняется. |
-| Есть | Выделенная область улучшается и возвращается в исходные границы новым слоем `SeedVR2 Upscale`. | Увеличенная область открывается отдельным документом. |
+| Весь документ | Замена текущего документа увеличенной картинкой. Одно Undo восстанавливает исходное состояние и слои. | Увеличенный результат в новом документе; исходник не меняется. |
+| Выделение | Новый слой `SeedVR2 Upscale` в **старых границах выделения**; размер исходного документа не меняется. | Увеличенная рамка выделения в новом документе. |
 
-Оба режима размера работают во всех четырех сценариях:
+Для любого непустого выделения используется его прямоугольная рамка. Прогресс общий для всех частей: `Part 2/4`, `Stitching...`, `Applying...`. Кнопка `Stop` прерывает текущую задачу и не запускает оставшиеся части.
 
-- `Scale Multiplier`: `2x`, `3x`, `4x`;
-- `Shortest Side Limit`: от `500` до `2500 px` по короткой стороне.
+Если готовый PNG не удалось вернуть в Photoshop, появляется **Open Last Result**. Он открывает завершённый результат новым документом без повторной генерации. Воспользуйтесь им до закрытия или перезагрузки плагина.
 
-Если выбранный множитель дает больше `2500 px` по короткой стороне, плагин автоматически ограничивает цель до `2500 px`. Длинная сторона сохраняет пропорции и отдельно не ограничивается.
+## Установка За Несколько Шагов
 
-## Быстрый старт
+1. Подготовьте локальный ComfyUI и узлы [ComfyUI-SeedVR2_VideoUpscaler](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler).
+2. Проверьте [API workflow](workflows/workflows-for-comfyui/seedvr2_simple_image_upscale_api.json) на небольшом изображении в самом ComfyUI.
+3. Скачайте и полностью распакуйте [Windows ZIP 0.2.0](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.0/SeedVR2-Upscaler-v0.2.0-Windows.zip).
+4. Закройте Photoshop. Если использовали Developer Tool, сначала сделайте `Unload` старого экземпляра.
+5. Запустите `INSTALL_SEEDVR2_UPSCALER.bat` и подтвердите запрос прав Windows.
+6. Откройте Photoshop: `Plugins → SeedVR2 Upscaler → SeedVR2 Upscaler`.
 
-1. Установите в ComfyUI узлы [ComfyUI-SeedVR2_VideoUpscaler](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler).
-2. Откройте и один раз вручную выполните [workflow из репозитория](workflows/workflows-for-comfyui/seedvr2_simple_image_upscale_api.json). Это проверит узлы, модели и GPU до подключения Photoshop.
-3. Убедитесь, что ComfyUI доступен по адресу `http://127.0.0.1:8188`.
-4. Закройте Photoshop и запустите [INSTALL_SEEDVR2_UPSCALER.bat](ccx/INSTALL_SEEDVR2_UPSCALER.bat). Можно также дважды щелкнуть по CCX.
-5. Перезапустите Photoshop и откройте `Plugins -> SeedVR2 Upscaler -> SeedVR2 Upscaler`.
-6. Откройте фотографию, выберите режим и нажмите `Upscale`.
+[Подробная инструкция с GIF](docs/INSTALLATION_RU.md) · [Установка и первый запуск в картинках](docs/DEMONSTRATIONS_RU.md)
 
 ## Требования
 
-- Windows;
-- Adobe Photoshop 24.0 или новее;
-- Photoshop 25.0 или новее для записи и воспроизведения шага плагина в Actions;
-- Adobe Creative Cloud Desktop;
-- локальный ComfyUI на `127.0.0.1:8188`;
-- узлы `ComfyUI-SeedVR2_VideoUpscaler`;
-- NVIDIA GPU с CUDA для включенного workflow.
+- Windows и Adobe Creative Cloud Desktop.
+- Photoshop **24.0+** для обычного режима, **24.4+ с Imaging API** для обработки по частям, **25.0+** для Photoshop Actions.
+- ComfyUI на `127.0.0.1:8188`, узлы SeedVR2 и совместимая NVIDIA CUDA-видеокарта.
+- Достаточно VRAM для выбранной модели, оперативной памяти и места на scratch-диске Photoshop для сборки.
 
-Встроенный workflow использует `7B FP16`, поэтому это тяжелый профиль. Для него практично ориентироваться на видеокарту с `24 GB VRAM`; авторский рабочий тест выполнялся на RTX 4090. Официальные узлы SeedVR2 поддерживают и более экономичные варианты, но для их использования нужно отдельно адаптировать и проверить API workflow плагина.
+В комплекте используются `seedvr2_ema_7b_fp16.safetensors` и `ema_vae_fp16.safetensors`. Модели в ZIP не входят. Первый запуск может занять больше времени из-за скачивания и загрузки весов. Точный минимальный объём VRAM для разных видеокарт не заявляется.
 
-## Модели и workflow
+Workflow сохранён: VAE encode/decode tiling `1024`, overlap `128`, `uniform_batch_size: true`, `batch_size: 1`, цветокоррекция `lab`, alpha-цепочка. Torch Compile не добавлен. Для иных моделей, FP8 или GGUF нужно отдельно проверить совместимый workflow.
 
-В текущем шаблоне используются:
+## Actions И Документация
 
-- `seedvr2_ema_7b_fp16.safetensors`;
-- `ema_vae_fp16.safetensors`;
-- `SeedVR2VideoUpscaler`;
-- `SeedVR2LoadDiTModel`;
-- `SeedVR2LoadVAEModel`;
-- alpha-цепочка через `JoinImageWithAlpha`.
+В Photoshop Actions записываются режим размера, множитель, точная короткая сторона, `New Window`, состояние `Tiled Upscale` и количество частей. Новый запуск выбирает новый seed; внутри одной tiled-операции seed общий для всех частей. Старые экшены без tiled-настроек продолжают выполнять обычный апскейл.
 
-Узлы SeedVR2 умеют автоматически скачивать модели в `ComfyUI/models/SEEDVR2` при первом запуске. Сначала обязательно проверьте приложенный workflow непосредственно в ComfyUI. Если он не выполняется там, Photoshop-плагин тоже не сможет его запустить.
-
-Плагин принудительно сохраняет проверенные настройки для одиночных изображений: VAE tiling `1024`, overlap `128`, encode/decode tiling включены, `uniform_batch_size: true`, `batch_size: 1`, цветокоррекция `lab`. Torch Compile намеренно не добавлен.
-
-## Photoshop Actions
-
-Версия `0.1.1` записывает запуск как один шаг `SeedVR2 Upscale`. В шаг сохраняются режим размера, множитель или точное значение короткой стороны, состояние `New Window` и seed запуска.
-
-Кратко: откройте `Window -> Actions`, включите запись операции, настройте панель и один раз нажмите `Upscale`. Для пакетной обработки обычно удобнее `New Window OFF`, а после шага SeedVR2 добавить сохранение и закрытие файла.
-
-Подробно: [docs/ACTIONS_RU.md](docs/ACTIONS_RU.md).
-
-## Документация
-
-- [Установка](docs/INSTALLATION_RU.md)
-- [Использование и режимы](docs/USAGE_RU.md)
+- [Установка и обновление](docs/INSTALLATION_RU.md)
+- [Размеры, части, выделение, New Window и Undo](docs/USAGE_RU.md)
+- [Все новые GIF-демонстрации](docs/DEMONSTRATIONS_RU.md)
 - [Photoshop Actions и пакетная обработка](docs/ACTIONS_RU.md)
-- [Ошибки и решения](docs/TROUBLESHOOTING_RU.md)
-- [Разработка и сборка CCX](docs/DEVELOPMENT_RU.md)
+- [Ошибки, VRAM и Open Last Result](docs/TROUBLESHOOTING_RU.md)
+- [Исходники, тесты и сборка CCX](docs/DEVELOPMENT_RU.md)
 
-## Структура репозитория
+## Ограничения
 
-```text
-ccx/                         готовый CCX и BAT-файлы
-docs/                        пользовательская документация
-media/                       изображения, GIF и MP4
-plugin/photoshop-seedvr2-plugin/
-                             исходники UXP-плагина
-workflows/workflows-for-comfyui/
-                             API workflow SeedVR2
-```
+SeedVR2 генерирует детали, а не восстанавливает гарантированно точный оригинал. Больше частей не гарантирует меньше галлюцинаций. Сборка tiled-результата выполняется в **sRGB, 8-bit RGBA**. Технический предел PNG в плагине: **30000 px по каждой стороне**; реальный доступный размер зависит от памяти.
 
-## Важно
+Не меняйте исходный документ во время обработки. Перед возвратом плагин проверяет его ID, размеры и историю, чтобы не затереть изменённую работу. Без выделения и с `New Window OFF` результат сводится в один слой; восстановление исходных слоёв доступно через Undo.
 
-- SeedVR2 генерирует новые детали. Проверяйте лица, текст, пальцы, ткань и мелкие границы при увеличении.
-- Не меняйте исходный документ во время рендера: плагин проверяет документ и отменяет возврат результата, если его состояние изменилось.
-- Модели не входят в репозиторий и скачиваются отдельно.
-- Плагин не является официальным продуктом Adobe, ComfyUI или авторов SeedVR2.
-- Отдельная лицензия для кода этого репозитория пока не указана; по умолчанию права сохраняются за автором.
+Плагин не является официальным продуктом Adobe, ComfyUI или авторов SeedVR2. Отдельная лицензия кода пока не указана; права сохраняются за автором. Модели и сторонние проекты распространяются на своих условиях.
 
 ## Благодарности
 
-- [SeedVR2](https://github.com/ByteDance-Seed/SeedVR)
-- [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
-- [ComfyUI-SeedVR2_VideoUpscaler](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler)
+[SeedVR2 / ByteDance-Seed](https://github.com/ByteDance-Seed/SeedVR) · [ComfyUI](https://github.com/comfyanonymous/ComfyUI) · [Узлы SeedVR2 / numz](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler)

@@ -329,6 +329,42 @@ h1 {
   opacity: 0.52;
 }
 
+.tiled-section {
+  flex: 0 0 auto;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #424242;
+}
+
+.tiled-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tile-preview,
+.progress-status {
+  margin: 10px 0 0;
+  color: #a9c7ed;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.recovery-button {
+  display: block;
+  width: 180px;
+  margin: 0 16px 12px;
+}
+
+.tile-preview.is-error {
+  color: #f0b79a;
+}
+
+.progress-status {
+  margin: 0;
+  padding: 0 16px 8px;
+}
+
 .pixels-row.is-disabled {
   opacity: 0.42;
 }
