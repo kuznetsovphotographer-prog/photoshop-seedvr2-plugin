@@ -8,6 +8,8 @@
 
 [Скачать для Windows](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.0/SeedVR2-Upscaler-v0.2.0-Windows.zip) · [Установка](docs/INSTALLATION_RU.md) · [Как пользоваться](docs/USAGE_RU.md) · [GIF-демонстрации](docs/DEMONSTRATIONS_RU.md) · [Что изменилось](RELEASE_NOTES_v0.2.0.md)
 
+**Первый раз с ComfyUI?** [Установка с нуля: Portable, Stability Matrix, Desktop, модели и проверки](docs/COMFYUI_SETUP_RU.md). Можно также передать [готовое задание своему Codex / OpenCode](docs/AGENT_SETUP_RU.md); для агента есть [точные URL, размеры и SHA256 моделей](docs/comfyui-setup-manifest.json).
+
 ![До и после SeedVR2: один участок портрета в общем масштабе](media/images/tiled-before-after.jpg)
 
 *Фрагменты предоставлены автором. Для сравнения они совмещены и приведены к общему масштабу, без дополнительной резкости и ретуши. Это не попиксельное сравнение 1:1. [Исходный фрагмент](media/images/before-detail.jpg) · [Результат](media/images/after-detail.jpg).*
@@ -88,8 +90,8 @@
 
 ## Установка За Несколько Шагов
 
-1. Подготовьте локальный ComfyUI и узлы [ComfyUI-SeedVR2_VideoUpscaler](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler).
-2. Проверьте [API workflow](workflows/workflows-for-comfyui/seedvr2_simple_image_upscale_api.json) на небольшом изображении в самом ComfyUI.
+1. Установите локальный ComfyUI, узлы и модели по [пошаговому руководству](docs/COMFYUI_SETUP_RU.md). В нём есть четыре способа установки и ссылки на обе модели.
+2. Проверьте API, узлы и модели по этому руководству. [JSON workflow](workflows/workflows-for-comfyui/seedvr2_simple_image_upscale_api.json) является API-шаблоном, не универсальной визуальной схемой для drag-and-drop. Для агента описан отдельный маленький тест генерации.
 3. Скачайте и полностью распакуйте [Windows ZIP 0.2.0](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.0/SeedVR2-Upscaler-v0.2.0-Windows.zip).
 4. Закройте Photoshop. Если использовали Developer Tool, сначала сделайте `Unload` старого экземпляра.
 5. Запустите `INSTALL_SEEDVR2_UPSCALER.bat` и подтвердите запрос прав Windows.
@@ -113,6 +115,8 @@ Workflow сохранён: VAE encode/decode tiling `1024`, overlap `128`, `unif
 В Photoshop Actions записываются режим размера, множитель, точная короткая сторона, `New Window`, состояние `Tiled Upscale` и количество частей. Новый запуск выбирает новый seed; внутри одной tiled-операции seed общий для всех частей. Старые экшены без tiled-настроек продолжают выполнять обычный апскейл.
 
 - [Установка и обновление](docs/INSTALLATION_RU.md)
+- [ComfyUI и модели с нуля](docs/COMFYUI_SETUP_RU.md)
+- [Готовое задание для Codex / OpenCode](docs/AGENT_SETUP_RU.md)
 - [Размеры, части, выделение, New Window и Undo](docs/USAGE_RU.md)
 - [Все новые GIF-демонстрации](docs/DEMONSTRATIONS_RU.md)
 - [Photoshop Actions и пакетная обработка](docs/ACTIONS_RU.md)

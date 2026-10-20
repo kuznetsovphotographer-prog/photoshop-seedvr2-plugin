@@ -11,6 +11,8 @@
 
 ## 1. Подготовьте ComfyUI
 
+**Если ComfyUI ещё не установлен:** начните с [полного руководства с нуля](COMFYUI_SETUP_RU.md). Там есть Portable, Stability Matrix, официальный Desktop и ручная установка, прямые ссылки на модели, папка размещения и проверки. Для автоматизации установки есть [задание локальному агенту](AGENT_SETUP_RU.md) и [машиночитаемый список](comfyui-setup-manifest.json).
+
 Установите узлы [ComfyUI-SeedVR2_VideoUpscaler](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler) через менеджер узлов вашей сборки. После установки зависимостей перезапустите ComfyUI.
 
 В проверенном шаблоне указаны модели:

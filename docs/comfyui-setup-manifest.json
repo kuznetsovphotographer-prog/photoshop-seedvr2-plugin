@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "checked_on": "2026-10-20",
+  "plugin_version": "0.2.0",
+  "purpose": "Setup reference, not a complete environment lock or automatic installer.",
+  "target": {
+    "os": "Windows",
+    "backend": "NVIDIA CUDA",
+    "model_profile": "7B FP16"
+  },
+  "server": {
+    "base_url": "http://127.0.0.1:8188",
+    "read_only_checks": [
+      "/system_stats",
+      "/object_info"
+    ],
+    "generation_requires_user_authorization": true
+  },
+  "comfyui": {
+    "repository": "https://github.com/Comfy-Org/ComfyUI",
+    "portable_releases": "https://github.com/Comfy-Org/ComfyUI/releases/latest",
+    "portable_reference_release": "v0.42.1",
+    "reference_release_integration_tested": false
+  },
+  "custom_nodes": {
+    "repository": "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler",
+    "relative_install_path": "custom_nodes/seedvr2_videoupscaler",
+    "requirements_file": "requirements.txt",
+    "python": "Use the Python interpreter of the selected ComfyUI instance."
+  },
+  "workflow": "plugin/photoshop-seedvr2-plugin/workflows/seedvr2_simple_image_upscale_api.json",
+  "required_node_classes": [
+    "LoadImage",
+    "JoinImageWithAlpha",
+    "SeedVR2LoadDiTModel",
+    "SeedVR2LoadVAEModel",
+    "SeedVR2VideoUpscaler",
+    "SaveImage"
+  ],
+  "model_directory_relative_to_comfyui_root": "models/SEEDVR2",
+  "model_repository": "numz/SeedVR2_comfyUI",
+  "model_revision": "09ced71023636e9bc8cdf9cdecfb2625d1e691e8",
+  "total_model_bytes": 16980659238,
+  "models": [
+    {
+      "filename": "seedvr2_ema_7b_fp16.safetensors",
+      "workflow_node_id": "14",
+      "bytes": 16479334424,
+      "sha256": "7b8241aa957606ab6cfb66edabc96d43234f9819c5392b44d2492d9f0b0bbe4a",
+      "url": "https://huggingface.co/numz/SeedVR2_comfyUI/resolve/09ced71023636e9bc8cdf9cdecfb2625d1e691e8/seedvr2_ema_7b_fp16.safetensors"
+    },
+    {
+      "filename": "ema_vae_fp16.safetensors",
+      "workflow_node_id": "13",
+      "bytes": 501324814,
+      "sha256": "20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1",
+      "url": "https://huggingface.co/numz/SeedVR2_comfyUI/resolve/09ced71023636e9bc8cdf9cdecfb2625d1e691e8/ema_vae_fp16.safetensors"
+    }
+  ],
+  "sources": [
+    "https://docs.comfy.org/installation/comfyui_portable_windows",
+    "https://docs.comfy.org/installation/desktop/windows",
+    "https://docs.comfy.org/installation/manual_install",
+    "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler",
+    "https://huggingface.co/numz/SeedVR2_comfyUI/tree/09ced71023636e9bc8cdf9cdecfb2625d1e691e8",
+    "https://docs.comfy.org/development/comfyui-server/comms_routes"
+  ]
+}
