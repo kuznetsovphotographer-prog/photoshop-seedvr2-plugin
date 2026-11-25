@@ -1,4 +1,4 @@
-# Установка SeedVR2 Upscaler 0.2.0
+# Установка SeedVR2 Upscaler 0.2.5
 
 ## Что Понадобится
 
@@ -36,9 +36,26 @@ http://127.0.0.1:8188
 
 ![Запуск ComfyUI через Stability Matrix](../media/gif/start-comfyui.gif)
 
+### Автозапуск ComfyUI из Stability Matrix
+
+Если ComfyUI уже доступен на порту 8188, плагин просто подключится к нему. Для автозапуска на Windows один раз сохраните путь к уже установленному ComfyUI из Stability Matrix:
+
+1. Откройте папку **ComfyUI** через Stability Matrix. В ней должны быть `main.py` и `venv\Scripts\pythonw.exe`.
+2. Выполните в PowerShell две строки, чтобы открыть файл настройки:
+
+   ```powershell
+   New-Item -ItemType Directory -Path "$env:LOCALAPPDATA\SeedVR2Upscaler" -Force | Out-Null
+   notepad "$env:LOCALAPPDATA\SeedVR2Upscaler\comfyui-path.txt"
+   ```
+
+3. Вставьте полный путь к папке **ComfyUI** первой строкой, без кавычек, и сохраните как **UTF-8**.
+4. В Photoshop нажмите **Upscale** или **Preload**. Если Photoshop попросит разрешение открыть локальный скрипт запуска, подтвердите.
+
+Для Portable или Desktop ComfyUI можно оставить ручной запуск. Если автозапуск не сработал, проверьте `comfy-launch.log` и `comfy-server.log` в той же папке настроек. Launcher не устанавливает ComfyUI и не скачивает модели.
+
 ## 2. Скачайте Комплект
 
-Скачайте [SeedVR2-Upscaler-v0.2.0-Windows.zip](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.0/SeedVR2-Upscaler-v0.2.0-Windows.zip) и распакуйте его целиком в обычную папку.
+Скачайте [SeedVR2-Upscaler-v0.2.5-Windows.zip](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.5/SeedVR2-Upscaler-v0.2.5-Windows.zip) и распакуйте его целиком в обычную папку.
 
 В комплекте:
 
@@ -56,7 +73,7 @@ seedvr2_simple_image_upscale_api.json
 Контрольные суммы доступны в [SHA256SUMS.txt](../ccx/SHA256SUMS.txt). Например:
 
 ```powershell
-Get-FileHash .\SeedVR2-Upscaler-v0.2.0-Windows.zip -Algorithm SHA256
+Get-FileHash .\SeedVR2-Upscaler-v0.2.5-Windows.zip -Algorithm SHA256
 ```
 
 ## 3. Установите Плагин
@@ -65,9 +82,8 @@ Get-FileHash .\SeedVR2-Upscaler-v0.2.0-Windows.zip -Algorithm SHA256
 2. Закройте Photoshop.
 3. Запустите `INSTALL_SEEDVR2_UPSCALER.bat`.
 4. Проверьте имя файла и подтвердите запрос прав Windows.
-5. После приглашения в консоли нажмите любую клавишу.
-6. Дождитесь сообщения `SeedVR2 Upscaler 0.2.0 package installed successfully.`
-7. Запустите Photoshop.
+5. Дождитесь сообщения `Adobe reports successful installation`, затем закройте окно BAT.
+6. Запустите Photoshop.
 
 BAT вызывает официальный установщик Adobe UPIA. Creative Cloud Desktop должен быть установлен. Если Windows показывает предупреждение безопасности, убедитесь, что пакет скачан из этого репозитория; не отключайте защиту системы.
 
@@ -98,9 +114,9 @@ Plugins -> SeedVR2 Upscaler -> SeedVR2 Upscaler
 
 Не меняйте оригинал во время рендера. [Режимы и ограничения](USAGE_RU.md).
 
-## Обновление С 0.1.1
+## Обновление
 
-Идентификатор плагина тот же: `com.local.photoshop.seedvr2-upscaler`. Закройте Photoshop и установите 0.2.0 поверх прежней версии. Старые настройки читаются без сброса; новые tiled-настройки по умолчанию выключены.
+Идентификатор прежний: `com.local.photoshop.seedvr2-upscaler`. Закройте Photoshop и установите 0.2.5 поверх предыдущей версии. Сохранённые настройки и Photoshop Actions остаются на месте.
 
 Если Adobe не заменил пакет, закройте Photoshop, запустите `UNINSTALL_SEEDVR2_UPSCALER.bat`, затем установщик новой версии. Две копии с одним ID одновременно загружать нельзя.
 

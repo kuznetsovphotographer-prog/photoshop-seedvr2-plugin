@@ -1,10 +1,10 @@
-SeedVR2 Upscaler 0.2.0 / Windows
+SeedVR2 Upscaler 0.2.5 / Windows
 
 1. Распакуйте ZIP целиком. Не запускайте BAT из окна архива.
 2. Оставьте com.local.photoshop.seedvr2-upscaler_PS.ccx рядом с BAT-файлами.
 3. Выгрузите Developer Tool-копию через Unload, если она использовалась.
 4. Закройте Photoshop.
-5. Запустите INSTALL_SEEDVR2_UPSCALER.bat, подтвердите права и приглашение в консоли.
+5. Запустите INSTALL_SEEDVR2_UPSCALER.bat и подтвердите права Windows.
 6. Дождитесь успешного завершения, затем перезапустите Photoshop.
 7. Меню: Plugins -> SeedVR2 Upscaler -> SeedVR2 Upscaler.
 
@@ -14,7 +14,9 @@ SeedVR2 Upscaler 0.2.0 / Windows
 Удаление: закройте Photoshop, запустите UNINSTALL_SEEDVR2_UPSCALER.bat.
 ComfyUI и модели остаются на компьютере.
 
-Перед генерацией запустите ComfyUI на http://127.0.0.1:8188.
+Запустите ComfyUI вручную на http://127.0.0.1:8188 или настройте автозапуск Stability Matrix.
+Для автозапуска создайте %LOCALAPPDATA%\SeedVR2Upscaler\comfyui-path.txt.
+Первая строка файла: полный путь к папке ComfyUI с main.py и venv\Scripts\pythonw.exe, без кавычек.
 Установите узлы ComfyUI-SeedVR2_VideoUpscaler и нужные модели.
 Workflow использует 7B FP16, модели в архив не входят.
 JSON в комплекте является API-шаблоном; плагин сам подставляет изображение.
@@ -24,5 +26,5 @@ Tiled Upscale: 2/4/6 частей по очереди. 2500 px: предел к�
 Точный итог зависит от исходника и показан в панели. Части не уменьшают веса модели.
 Не редактируйте исходник во время работы.
 
-Руководство: https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin
+Руководство: https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/blob/v0.2.5/docs/INSTALLATION_RU.md
 Ошибки Adobe: C:\ProgramData\Adobe\UPI\Log\Upia.log

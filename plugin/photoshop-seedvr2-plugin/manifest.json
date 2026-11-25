@@ -2,7 +2,7 @@
   "manifestVersion": 5,
   "id": "com.local.photoshop.seedvr2-upscaler",
   "name": "SeedVR2 Upscaler",
-  "version": "0.2.0",
+  "version": "0.2.5",
   "main": "index.html",
   "icons": [
     {
@@ -54,6 +54,11 @@
   },
   "requiredPermissions": {
     "localFileSystem": "request",
+    "launchProcess": {
+      "extensions": [
+        ".cmd"
+      ]
+    },
     "network": {
       "domains": "all"
     }

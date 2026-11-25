@@ -72,6 +72,7 @@ button {
 }
 
 .panel-titlegroup,
+.panel-title-actions,
 .mode-labelgroup,
 .pixels-editor,
 .button-visual {
@@ -98,11 +99,25 @@ button {
   letter-spacing: 0.3px;
 }
 
-.panel-close {
-  color: #a9b1bb;
-  font-size: 24px;
-  font-weight: 300;
-  line-height: 1;
+.engine-action {
+  position: relative;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 24px;
+}
+
+.engine-action + .engine-action {
+  margin-left: 6px;
+}
+
+.engine-icon {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .panel-content {
@@ -126,6 +141,38 @@ button {
 .intro-copy {
   min-width: 0;
 }
+
+.engine-row {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.engine-state {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding-right: 8px;
+  color: var(--ps-text);
+  line-height: 1.35;
+}
+
+.engine-dot {
+  flex: 0 0 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #909090;
+}
+
+.engine-dot.is-busy { background: #e9ad56; }
+.engine-dot.is-ready { background: #70bf9b; }
+.engine-dot.is-error { background: #e58c85; }
+
+.action-hitbox:disabled + .button-visual { opacity: 0.55; }
 
 h1,
 p {
@@ -321,12 +368,57 @@ h1 {
 .scale-grid {
   margin-top: 12px;
   display: flex;
-  gap: 12px;
   transition: opacity 160ms ease;
 }
 
 .scale-grid.is-disabled {
   opacity: 0.52;
+}
+
+.choice-control {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 34px;
+}
+
+/* Photoshop UXP can ignore flex gap; keep space outside the entire hit area. */
+.choice-control + .choice-control {
+  margin-left: 14px;
+}
+
+/* UXP draws native button chrome. Only these sibling surfaces are visible. */
+.button-visual.engine-action-visual,
+.button-visual.choice-visual {
+  border: 1px solid var(--ps-button-border);
+  background: var(--ps-button-bg);
+}
+
+.button-visual.engine-action-visual {
+  border-radius: var(--ps-radius-control);
+}
+
+.button-visual.choice-visual {
+  border-radius: 17px;
+  font-size: 13px;
+}
+
+.action-hitbox:enabled:hover + .engine-action-visual,
+.choice-hitbox:enabled:not(.is-active):hover + .choice-visual {
+  border-color: var(--ps-button-border-hover);
+  background: var(--ps-button-hover);
+}
+
+.choice-hitbox.is-active + .choice-visual {
+  border-color: #2484ef;
+  background: var(--ps-blue);
+  color: #ffffff;
+}
+
+.action-hitbox:focus + .engine-action-visual,
+.choice-hitbox:focus + .choice-visual,
+.choice-hitbox.is-active:focus + .choice-visual {
+  border-color: #a9c7ed;
 }
 
 .tiled-section {
@@ -391,12 +483,6 @@ h1 {
   border-color: var(--ps-button-border-hover);
   background: var(--ps-button-hover);
   outline: none;
-}
-
-.scale-button.is-active {
-  border-color: #2484ef;
-  background: var(--ps-blue);
-  color: #ffffff;
 }
 
 .scale-button:disabled {

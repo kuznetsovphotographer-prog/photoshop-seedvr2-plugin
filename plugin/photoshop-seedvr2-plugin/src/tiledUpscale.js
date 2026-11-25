@@ -38,7 +38,9 @@
         report(start, stage);
         const upload = await client.uploadImage(crops[i], `part-${i + 1}`);
         throwIfCancelled(cancelToken);
-        const patched = await mapper.patchWorkflow({ imageName: upload.imageName, resolution: layout.resolution, seed });
+        const patched = await mapper.patchWorkflow({
+          imageName: upload.imageName, resolution: layout.resolution, seed, cacheModels: options.cacheModels === true
+        });
         throwIfCancelled(cancelToken);
         const result = await client.runPrompt(patched.prompt, patched.outputNodeId, (progress) => {
           if (progress && progress.max > 0 && Number.isFinite(progress.value)) {

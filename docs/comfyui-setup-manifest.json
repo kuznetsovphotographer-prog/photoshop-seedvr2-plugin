@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "checked_on": "2026-10-20",
-  "plugin_version": "0.2.0",
+  "plugin_version": "0.2.5",
   "purpose": "Setup reference, not a complete environment lock or automatic installer.",
   "target": {
     "os": "Windows",

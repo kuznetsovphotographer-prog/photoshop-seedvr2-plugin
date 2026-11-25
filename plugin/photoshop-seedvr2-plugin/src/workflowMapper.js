@@ -2,6 +2,7 @@
   const INPUT_NODE_ID = "16";
   const UPSCALER_NODE_ID = "10";
   const VAE_NODE_ID = "13";
+  const DIT_NODE_ID = "14";
   const OUTPUT_NODE_ID = "15";
 
   const FIXED_SETTINGS = {
@@ -114,6 +115,7 @@
     upscaler.inputs.resolution = normalizeResolution(options && options.resolution);
     upscaler.inputs.seed = normalizeSeed(options && options.seed);
     validateWorkflow(workflow);
+    if (options && options.cacheModels === true) setEngineCache(workflow, true);
 
     return {
       prompt: workflow,
@@ -121,6 +123,36 @@
       seed: upscaler.inputs.seed,
       resolution: upscaler.inputs.resolution
     };
+  }
+
+  function setEngineCache(workflow, enabled) {
+    const inputs = workflow[UPSCALER_NODE_ID].inputs;
+    for (const [id, role] of [[DIT_NODE_ID, "dit"], [VAE_NODE_ID, "vae"]]) {
+      const key = `seedvr2_ps_${role}`;
+      const node = workflow[id];
+      node.inputs.cache_model = enabled;
+      node.inputs.offload_device = enabled ? "cpu" : "none";
+      workflow[key] = node;
+      delete workflow[id];
+      inputs[role] = [key, 0];
+    }
+  }
+
+  function buildEngineWorkflow(template, keepCached) {
+    const workflow = clone(template);
+    enforceFixedSettings(workflow);
+    validateWorkflow(workflow);
+    const size = 128;
+    workflow[INPUT_NODE_ID] = { class_type: "EmptyImage",
+      inputs: { width: size, height: size, batch_size: 1, color: 8421504 } };
+    delete workflow["17"];
+    Object.assign(workflow[UPSCALER_NODE_ID].inputs, {
+      image: [INPUT_NODE_ID, 0], resolution: size, seed: normalizeSeed("random")
+    });
+    workflow[OUTPUT_NODE_ID] = { class_type: "PreviewImage", inputs: { images: [UPSCALER_NODE_ID, 0] } };
+    setEngineCache(workflow, keepCached);
+    return { prompt: workflow, outputNodeId: OUTPUT_NODE_ID,
+      models: ["seedvr2_ps_dit", "seedvr2_ps_vae"].map((key) => workflow[key].inputs.model) };
   }
 
   async function readPluginJson(pathParts) {
@@ -144,6 +176,7 @@
   globalThis.SeedVR2WorkflowMapper = {
     FIXED_SETTINGS,
     OUTPUT_NODE_ID,
+    buildEngineWorkflow,
     enforceFixedSettings,
     loadWorkflow,
     normalizeResolution,

@@ -1,12 +1,12 @@
 # SeedVR2 Upscaler for Adobe Photoshop
 
-**v0.2.0 · Local AI upscaling · ComfyUI · Tiled Upscale**
+**v0.2.5 · Local AI upscaling · ComfyUI · Tiled Upscale**
 
 Увеличивайте фотографии прямо из Photoshop: целиком или только в выделенной области. Обработка идёт локально через ComfyUI и SeedVR2.
 
-**Новое в 0.2.0:** апскейл по **2, 4 или 6 частям** с перекрытиями и плавной сборкой. Можно получить изображение около 4K и выше, не отправляя весь большой кадр в модель за один проход.
+**Новое в 0.2.5:** автозапуск уже настроенного ComfyUI из Stability Matrix и кнопки **Preload / Unload**. Апскейл по **2, 4 или 6 частям** остался: он помогает обрабатывать крупные кадры без отправки всего изображения в модель за один проход.
 
-[Скачать для Windows](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.0/SeedVR2-Upscaler-v0.2.0-Windows.zip) · [Установка](docs/INSTALLATION_RU.md) · [Как пользоваться](docs/USAGE_RU.md) · [GIF-демонстрации](docs/DEMONSTRATIONS_RU.md) · [Что изменилось](RELEASE_NOTES_v0.2.0.md)
+[Скачать для Windows](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.5/SeedVR2-Upscaler-v0.2.5-Windows.zip) · [Установка](docs/INSTALLATION_RU.md) · [Как пользоваться](docs/USAGE_RU.md) · [GIF-демонстрации](docs/DEMONSTRATIONS_RU.md) · [Что изменилось](RELEASE_NOTES_v0.2.5.md)
 
 **Первый раз с ComfyUI?** [Установка с нуля: Portable, Stability Matrix, Desktop, модели и проверки](docs/COMFYUI_SETUP_RU.md). Можно также передать [готовое задание своему Codex / OpenCode](docs/AGENT_SETUP_RU.md); для агента есть [точные URL, размеры и SHA256 моделей](docs/comfyui-setup-manifest.json).
 
@@ -14,17 +14,17 @@
 
 *Фрагменты предоставлены автором. Для сравнения они совмещены и приведены к общему масштабу, без дополнительной резкости и ретуши. Это не попиксельное сравнение 1:1. [Исходный фрагмент](media/images/before-detail.jpg) · [Результат](media/images/after-detail.jpg).*
 
-## Скачать 0.2.0
+## Скачать 0.2.5
 
 | Файл | Для чего |
 | --- | --- |
-| [Windows ZIP](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.0/SeedVR2-Upscaler-v0.2.0-Windows.zip) | Рекомендуемый комплект: CCX, установка, удаление, инструкция и API workflow |
-| [Готовый CCX](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.0/com.local.photoshop.seedvr2-upscaler_PS.ccx) | Установка через Adobe Creative Cloud |
+| [Windows ZIP](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.5/SeedVR2-Upscaler-v0.2.5-Windows.zip) | Рекомендуемый комплект: CCX, установка, удаление, инструкция и API workflow |
+| [Готовый CCX](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.5/com.local.photoshop.seedvr2-upscaler_PS.ccx) | Установка через Adobe Creative Cloud |
 | [Установщик BAT](ccx/INSTALL_SEEDVR2_UPSCALER.bat) · [Удаление BAT](ccx/UNINSTALL_SEEDVR2_UPSCALER.bat) | Для Windows; установщику нужен CCX в той же папке |
 | [Workflow ComfyUI](workflows/workflows-for-comfyui/seedvr2_simple_image_upscale_api.json) | Узлы и модели нужно подготовить отдельно |
 | [SHA256](ccx/SHA256SUMS.txt) | Контрольные суммы файлов |
 
-Сначала распакуйте ZIP целиком. Не запускайте BAT из окна архива. [Предыдущая версия 0.1.1](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/tag/v0.1.1) остаётся доступна отдельно.
+Сначала распакуйте ZIP целиком. Не запускайте BAT из окна архива. [Предыдущая версия 0.2.0](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/tag/v0.2.0) остаётся доступна отдельно.
 
 ## Что Даёт Tiled Upscale
 
@@ -58,7 +58,7 @@
 </td>
 <td valign="top">
 
-1. Запустите ComfyUI на `http://127.0.0.1:8188`.
+1. Запустите ComfyUI на `http://127.0.0.1:8188` или [один раз настройте автозапуск](docs/INSTALLATION_RU.md#автозапуск-comfyui-из-stability-matrix).
 2. Откройте фотографию; при необходимости создайте выделение.
 3. Выберите `2x / 3x / 4x` или `Shortest Side Limit`.
 4. Выберите `New Window`: новый документ или возврат в исходный.
@@ -92,7 +92,7 @@
 
 1. Установите локальный ComfyUI, узлы и модели по [пошаговому руководству](docs/COMFYUI_SETUP_RU.md). В нём есть четыре способа установки и ссылки на обе модели.
 2. Проверьте API, узлы и модели по этому руководству. [JSON workflow](workflows/workflows-for-comfyui/seedvr2_simple_image_upscale_api.json) является API-шаблоном, не универсальной визуальной схемой для drag-and-drop. Для агента описан отдельный маленький тест генерации.
-3. Скачайте и полностью распакуйте [Windows ZIP 0.2.0](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.0/SeedVR2-Upscaler-v0.2.0-Windows.zip).
+3. Скачайте и полностью распакуйте [Windows ZIP 0.2.5](https://github.com/kuznetsovphotographer-prog/photoshop-seedvr2-plugin/releases/download/v0.2.5/SeedVR2-Upscaler-v0.2.5-Windows.zip).
 4. Закройте Photoshop. Если использовали Developer Tool, сначала сделайте `Unload` старого экземпляра.
 5. Запустите `INSTALL_SEEDVR2_UPSCALER.bat` и подтвердите запрос прав Windows.
 6. Откройте Photoshop: `Plugins → SeedVR2 Upscaler → SeedVR2 Upscaler`.

@@ -3,6 +3,7 @@
   const ACTION_METHOD_NAME = "seedVR2UpscaleActionHandler";
   let logger;
   let isWorking = false;
+  let isEngineBusy = false;
   let currentClient = null;
   let currentPromptId = "";
   let cancelToken = null;
@@ -88,11 +89,10 @@
 
   function refreshScaleButtons() {
     const scaleActive = activeMode === "scale";
-    document.querySelectorAll(".scale-button[data-factor]").forEach((button) => {
-      button.classList.toggle(
-        "is-active",
-        scaleActive && Number(button.dataset.factor) === selectedFactor
-      );
+    document.querySelectorAll(".choice-hitbox[data-factor]").forEach((button) => {
+      const selected = scaleActive && Number(button.dataset.factor) === selectedFactor;
+      button.classList.toggle("is-active", selected);
+      button.setAttribute("aria-pressed", String(selected));
     });
   }
 
@@ -194,7 +194,7 @@
   function setControlsBusy(busy) {
     $("scaleModeToggle").classList.toggle("is-disabled", busy);
     $("pixelsModeToggle").classList.toggle("is-disabled", busy);
-    document.querySelectorAll(".scale-button").forEach((button) => {
+    document.querySelectorAll(".choice-hitbox").forEach((button) => {
       button.disabled = busy;
     });
     $("newWindowToggle").classList.toggle("is-disabled", busy);
@@ -227,6 +227,59 @@
     loader.style.width = "0";
   }
 
+  function setEngineStatus(message, state = "") {
+    $("engineStatus").textContent = message;
+    const dot = $("engineDot").classList;
+    for (const kind of ["busy", "ready", "error"]) dot.toggle(`is-${kind}`, state === kind);
+  }
+
+  function refreshEngineControls() {
+    const blocked = isWorking || isEngineBusy;
+    $("preloadModelBtn").disabled = blocked;
+    $("unloadModelBtn").disabled = blocked;
+    $("upscaleBtn").disabled = isEngineBusy;
+    $("openLastResultBtn").disabled = blocked;
+  }
+
+  async function runEngineAction(preload) {
+    if (isWorking || isEngineBusy) return;
+    isEngineBusy = true;
+    refreshEngineControls();
+    lastProgress = 0;
+    setProgress(Number.NaN);
+    try {
+      const engine = globalThis.SeedVR2ComfyEngine;
+      const client = new globalThis.SeedVR2ComfyClient.ComfyClient(getUiSettings().comfyUrl, logger);
+      if (!engine.isLocal(client.baseUrl)) {
+        throw new Error("Preload and Unload are available only on local ComfyUI port 8188.");
+      }
+      setEngineStatus("Checking ComfyUI...", "busy");
+      const report = (value) => {
+        setProgress(value);
+        const percent = Number.isFinite(value) ? ` ${lastProgress}%` : "";
+        setEngineStatus(preload ? `Preloading SeedVR2...${percent}` : `Releasing SeedVR2 cache...${percent}`, "busy");
+      };
+      if (preload) {
+        await engine.ensureReady(client.baseUrl, {
+          onStarting: () => setEngineStatus("Starting ComfyUI...", "busy")
+        });
+        await engine.preload(client, report);
+        setEngineStatus("SeedVR2 cached in RAM", "ready");
+      } else {
+        const sent = await engine.unload(client, report);
+        setEngineStatus(sent ? "Memory release requested" : "ComfyUI is offline", sent ? "ready" : "");
+      }
+    } catch (error) {
+      setEngineStatus(preload ? "Preload failed" : "Unload failed", "error");
+      logger.error(globalThis.SeedVR2Logger.formatError(error));
+      await globalThis.SeedVR2Photoshop.showAlert(error.message || String(error));
+    } finally {
+      clearProgress();
+      isEngineBusy = false;
+      refreshEngineControls();
+    }
+  }
+
   function updateBusyLabel() {
     const label = $("upscaleLabel");
     if (!isWorking) {
@@ -246,6 +299,7 @@
     $("upscaleIcon").hidden = busy;
     $("busyIcon").hidden = !busy;
     setControlsBusy(busy);
+    refreshEngineControls();
     updateBusyLabel();
     if (busy) {
       lastProgress = 0;
@@ -294,6 +348,7 @@
   }
 
   async function runUpscale(options = {}) {
+    if (isEngineBusy) throw new Error("Wait for the SeedVR2 memory operation to finish.");
     if (isWorking) {
       if (options.allowStop) {
         await handleStop();
@@ -324,6 +379,7 @@
     let openedResultDocument = false;
     let deliveryStarted = false;
     let retainedForRecovery = false;
+    let engineStatusPending = false;
     setBusy(true);
 
     try {
@@ -346,8 +402,21 @@
 
       const client = new globalThis.SeedVR2ComfyClient.ComfyClient(settings.comfyUrl, logger);
       currentClient = client;
-      const stats = await client.testConnection();
+      const engine = globalThis.SeedVR2ComfyEngine;
+      engineStatusPending = true;
+      setEngineStatus("Checking ComfyUI...", "busy");
+      const stats = await engine.ensureReady(client.baseUrl, {
+        check: () => throwIfCancelled(token),
+        onStarting() {
+          setEngineStatus("Starting ComfyUI...", "busy");
+          $("progressStatus").textContent = "Waiting for local ComfyUI...";
+        }
+      });
       throwIfCancelled(token);
+      engineStatusPending = false;
+      const cacheModels = engine.cacheReady(client.baseUrl);
+      setEngineStatus(cacheModels ? "ComfyUI ready · SeedVR2 cache on" : "ComfyUI ready", "ready");
+      $("progressStatus").textContent = "Preparing...";
       const version = stats && stats.system && stats.system.comfyui_version || "unknown";
       logger.info(`Connected to ComfyUI ${version}.`);
 
@@ -355,7 +424,7 @@
       throwIfCancelled(token);
       if (layout) {
         downloaded = await globalThis.SeedVR2TiledUpscale.run({
-          client, source, sourceFile: exportedFile, layout, logger, cancelToken: token,
+          client, source, sourceFile: exportedFile, layout, logger, cancelToken: token, cacheModels,
           onPromptQueued(promptId) { currentPromptId = promptId; },
           onProgress(value, stage) {
             setProgress(value);
@@ -369,7 +438,7 @@
         logger.info(`Uploaded Photoshop pixels to ComfyUI input: ${upload.imageName}.`);
 
         const patched = await globalThis.SeedVR2WorkflowMapper.patchWorkflow({
-          imageName: upload.imageName, resolution: sizing.resolution, seed: "random"
+          imageName: upload.imageName, resolution: sizing.resolution, seed: "random", cacheModels
         });
         logger.info(`Queued SeedVR2 with seed ${patched.seed}.`);
         logger.info("stage: queue:start");
@@ -407,6 +476,10 @@
       logger.info("SeedVR2 upscale completed.");
       setProgress(100);
     } catch (error) {
+      if (engineStatusPending) {
+        if (error && error.kind === "cancelled") setEngineStatus("ComfyUI · starts on demand");
+        else setEngineStatus("ComfyUI not ready", "error");
+      }
       if (error && error.kind === "cancelled") {
         logger.warn("SeedVR2 upscale stopped by user.");
         if (isActionPlayback) { throw error; }
@@ -446,11 +519,12 @@
   }
 
   async function handleUpscale() {
+    if (isEngineBusy) return;
     await runUpscale({ allowStop: true, recordAction: true });
   }
 
   async function openLastResult() {
-    if (isWorking || !recoveryFile) { return; }
+    if (isWorking || isEngineBusy || !recoveryFile) { return; }
     const file = recoveryFile;
     const token = { cancelled: false };
     cancelToken = token;
@@ -490,7 +564,7 @@
   function attachEvents() {
     bindModeToggle($("scaleModeToggle"), "scale");
     bindModeToggle($("pixelsModeToggle"), "pixels");
-    document.querySelectorAll(".scale-button[data-factor]").forEach((button) => {
+    document.querySelectorAll(".choice-hitbox[data-factor]").forEach((button) => {
       button.addEventListener("click", () => {
         if (isWorking) {
           return;
@@ -554,6 +628,8 @@
       }
     });
     $("upscaleBtn").addEventListener("click", handleUpscale);
+    $("preloadModelBtn").addEventListener("click", () => runEngineAction(true));
+    $("unloadModelBtn").addEventListener("click", () => runEngineAction(false));
     $("upscaleBtn").addEventListener("mouseenter", updateBusyLabel);
     $("upscaleBtn").addEventListener("mouseleave", updateBusyLabel);
     $("openLastResultBtn").addEventListener("click", openLastResult);
@@ -591,6 +667,6 @@
     attachEvents();
     refreshSourcePreview();
     setInterval(refreshSourcePreview, 1500);
-    logger.info("SeedVR2 Upscaler 0.2.0 is ready.");
+    logger.info("SeedVR2 Upscaler 0.2.5 is ready.");
   });
 })();

@@ -13,7 +13,20 @@
           <span class="panel-mark" aria-hidden="true"></span>
           <span class="panel-title">SEEDVR2</span>
         </div>
-        <span class="panel-close" aria-hidden="true">&times;</span>
+        <div class="panel-title-actions">
+          <div class="engine-action">
+            <button id="preloadModelBtn" class="action-hitbox" type="button" aria-label="Preload SeedVR2 model" title="Preload SeedVR2 into memory"></button>
+            <span class="button-visual engine-action-visual" aria-hidden="true">
+              <svg class="engine-icon" viewBox="0 0 16 16"><path d="M8 2v8m-3-3 3 3 3-3M3 10v3h10v-3"/></svg>
+            </span>
+          </div>
+          <div class="engine-action">
+            <button id="unloadModelBtn" class="action-hitbox" type="button" aria-label="Unload SeedVR2 model" title="Unload SeedVR2 and free shared ComfyUI memory"></button>
+            <span class="button-visual engine-action-visual" aria-hidden="true">
+              <svg class="engine-icon" viewBox="0 0 16 16"><path d="M8 10V2M5 5l3-3 3 3M3 10v3h10v-3"/></svg>
+            </span>
+          </div>
+        </div>
       </header>
 
       <div class="panel-content">
@@ -44,6 +57,13 @@
           </div>
         </section>
 
+        <section class="engine-row" aria-label="ComfyUI engine">
+          <div class="engine-state">
+            <span id="engineDot" class="engine-dot" aria-hidden="true"></span>
+            <span id="engineStatus" role="status" aria-live="polite">ComfyUI · starts on demand</span>
+          </div>
+        </section>
+
         <section class="mode-section">
           <div id="scaleModeToggle" class="mode-heading" role="radio" aria-checked="true" tabindex="0">
             <div class="mode-labelgroup">
@@ -54,9 +74,18 @@
           </div>
 
           <div id="scaleButtons" class="scale-grid">
-            <button class="scale-button is-active" type="button" data-factor="2">2x</button>
-            <button class="scale-button" type="button" data-factor="3">3x</button>
-            <button class="scale-button" type="button" data-factor="4">4x</button>
+            <div class="choice-control">
+              <button class="action-hitbox choice-hitbox is-active" type="button" data-factor="2" aria-label="2x" aria-pressed="true"></button>
+              <span class="button-visual choice-visual" aria-hidden="true">2x</span>
+            </div>
+            <div class="choice-control">
+              <button class="action-hitbox choice-hitbox" type="button" data-factor="3" aria-label="3x" aria-pressed="false"></button>
+              <span class="button-visual choice-visual" aria-hidden="true">3x</span>
+            </div>
+            <div class="choice-control">
+              <button class="action-hitbox choice-hitbox" type="button" data-factor="4" aria-label="4x" aria-pressed="false"></button>
+              <span class="button-visual choice-visual" aria-hidden="true">4x</span>
+            </div>
           </div>
         </section>
 
@@ -103,9 +132,18 @@
             </div>
           </div>
           <div id="tileButtons" class="scale-grid is-disabled">
-            <button class="tile-button scale-button" type="button" data-parts="2" aria-pressed="false">2 parts</button>
-            <button class="tile-button scale-button" type="button" data-parts="4" aria-pressed="false">4 parts</button>
-            <button class="tile-button scale-button" type="button" data-parts="6" aria-pressed="false">6 parts</button>
+            <div class="choice-control">
+              <button class="action-hitbox choice-hitbox tile-button" type="button" data-parts="2" aria-label="2 parts" aria-pressed="false"></button>
+              <span class="button-visual choice-visual" aria-hidden="true">2 parts</span>
+            </div>
+            <div class="choice-control">
+              <button class="action-hitbox choice-hitbox tile-button" type="button" data-parts="4" aria-label="4 parts" aria-pressed="false"></button>
+              <span class="button-visual choice-visual" aria-hidden="true">4 parts</span>
+            </div>
+            <div class="choice-control">
+              <button class="action-hitbox choice-hitbox tile-button" type="button" data-parts="6" aria-label="6 parts" aria-pressed="false"></button>
+              <span class="button-visual choice-visual" aria-hidden="true">6 parts</span>
+            </div>
           </div>
           <p id="tilePreview" class="tile-preview">Process and blend image parts</p>
         </section>
@@ -123,6 +161,7 @@
     <script src="src/tileBlending.js"></script>
     <script src="src/workflowMapper.js"></script>
     <script src="src/comfyClient.js"></script>
+    <script src="src/comfyEngine.js"></script>
     <script src="src/photoshop.js"></script>
     <script src="src/tiledUpscale.js"></script>
     <script src="src/main.js"></script>

@@ -1,5 +1,6 @@
 * text=auto eol=lf
 *.bat -text whitespace=cr-at-eol
+*.cmd -text whitespace=cr-at-eol
 *.ccx binary
 *.zip binary
 *.gif binary

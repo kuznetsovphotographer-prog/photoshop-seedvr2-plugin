@@ -425,6 +425,8 @@
         throw cancelledError();
       }
 
+      if (options && typeof options.beforeQueue === "function") await options.beforeQueue();
+      if (isCancelled(cancelToken)) throw cancelledError();
       const promptId = await this.queuePrompt(prompt, clientId);
       const deadline = Date.now() + 30 * 60 * 1000;
       if (options && typeof options.onPromptQueued === "function") {

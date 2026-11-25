@@ -1,4 +1,4 @@
-# SeedVR2 Upscaler 0.2.0 для Windows
+# SeedVR2 Upscaler 0.2.5 для Windows
 
 В этом комплекте: CCX, установщик, удаление и API workflow. Модели и ComfyUI скачиваются отдельно.
 
@@ -8,7 +8,7 @@
 2. Оставьте CCX и оба BAT-файла рядом.
 3. Если использовали UXP Developer Tool, сделайте Unload прежнего экземпляра.
 4. Закройте Photoshop.
-5. Запустите INSTALL_SEEDVR2_UPSCALER.bat, подтвердите права Windows и приглашение в консоли.
+5. Запустите INSTALL_SEEDVR2_UPSCALER.bat и подтвердите права Windows.
 6. Дождитесь сообщения об успешной установке, затем запустите Photoshop.
 7. Откройте Plugins -> SeedVR2 Upscaler -> SeedVR2 Upscaler.
 
@@ -17,6 +17,8 @@
 ## Перед Первой Генерацией
 
 Запустите локальный ComfyUI на http://127.0.0.1:8188, установите узлы ComfyUI-SeedVR2_VideoUpscaler и модели seedvr2_ema_7b_fp16.safetensors / ema_vae_fp16.safetensors. Сначала проверьте узлы в самом ComfyUI.
+
+Чтобы не открывать Stability Matrix при каждом запуске, один раз сохраните путь к его папке ComfyUI в `%LOCALAPPDATA%\SeedVR2Upscaler\comfyui-path.txt` (первая строка, без кавычек). В этой папке ComfyUI должны быть `main.py` и `venv\Scripts\pythonw.exe`. При первом **Upscale** или **Preload** Photoshop может попросить разрешить запуск скрипта.
 
 Приложенный JSON: API-шаблон, не универсальная схема редактора. LoadImage содержит пример имени; плагин заменяет его автоматически.
 
